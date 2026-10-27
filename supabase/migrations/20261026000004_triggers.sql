@@ -613,6 +613,73 @@ for each row when (new.felt_safe = false)
 execute function private.check_unsafe_ratings();
 
 -- -----------------------------------------------------------------------------
+-- Server-side analytics events (implementation-plan §Analytics, S-9: ids and enums only)
+-- -----------------------------------------------------------------------------
+create function private.track(p_event text, p_user uuid, p_props jsonb)
+returns void
+language sql
+security definer
+set search_path = ''
+as $$
+  insert into private.analytics_outbox (event, distinct_id, city_slug, props)
+  select p_event, p_user, coalesce(c.slug, 'unknown'), p_props
+  from (select 1) one
+  left join public.profiles p on p.id = p_user
+  left join public.cities c on c.id = p.city_id;
+$$;
+
+create function private.track_verification()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_attempt int;
+  v_check public.check_type;
+begin
+  select coalesce(max(attempt), 1) into v_attempt from public.verification_checks where user_id = new.id;
+  if new.verification_status = 'verified' then
+    perform private.track('verification_passed', new.id,
+      jsonb_build_object('attempt', v_attempt, 'manual', old.verification_status = 'manual_review'));
+  elsif new.verification_status in ('rejected', 'manual_review', 'blocked_minor') then
+    select vc.type into v_check from public.verification_checks vc
+    where vc.user_id = new.id and vc.verdict <> 'pass'
+    order by vc.created_at desc limit 1;
+    perform private.track('verification_failed', new.id, jsonb_build_object(
+      'check_type', coalesce(v_check, 'liveness_face'),
+      'outcome', case new.verification_status when 'rejected' then 'fail' when 'blocked_minor' then 'minor' else 'review' end));
+  end if;
+  return new;
+end;
+$$;
+
+create trigger track_verification
+after update of verification_status on public.profiles
+for each row when (new.verification_status is distinct from old.verification_status)
+execute function private.track_verification();
+
+-- join_approved is fired for the requester, so it counts even when their app is closed.
+create function private.track_join_approved()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  perform private.track('join_approved', new.user_id, jsonb_build_object(
+    'plan_id', new.plan_id,
+    'wait_minutes', greatest(0, round(extract(epoch from (coalesce(new.decided_at, now()) - new.requested_at)) / 60))::int));
+  return new;
+end;
+$$;
+
+create trigger track_join_approved
+after update of status on public.plan_members
+for each row when (old.status = 'requested' and new.status = 'approved')
+execute function private.track_join_approved();
+
+-- -----------------------------------------------------------------------------
 -- S-46: audit_log is insert-only for every role
 -- -----------------------------------------------------------------------------
 create function private.prevent_audit_log_mutation()

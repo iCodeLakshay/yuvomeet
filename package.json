@@ -5,18 +5,16 @@
   "packageManager": "pnpm@9.15.9",
   "scripts": {
     "typecheck": "pnpm -r typecheck",
-    "test": "node --experimental-strip-types --test packages/shared/src/__tests__/shared.test.ts && node scripts/verify-security-rules.mjs",
+    "test": "pnpm --filter @yuvomeet/shared test && node scripts/verify-security-rules.mjs",
     "check:security": "node scripts/verify-security-rules.mjs",
+    "db:types": "supabase gen types typescript --local --schema public > packages/shared/src/database.types.ts",
+    "db:test": "supabase test db",
+    "functions:check": "cd supabase/functions && deno check */index.ts && deno test _shared/",
     "mobile:start": "pnpm --filter @yuvomeet/mobile start",
-    "mobile:android": "pnpm --filter @yuvomeet/mobile android"
+    "mobile:android": "pnpm --filter @yuvomeet/mobile android",
+    "admin:dev": "pnpm --filter @yuvomeet/admin dev"
   },
   "devDependencies": {
     "typescript": "~5.8.2"
-  },
-  "pnpm": {
-    "overrides": {
-      "expo-constants": "17.1.8",
-      "expo-linking": "7.1.7"
-    }
   }
 }

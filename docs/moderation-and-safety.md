@@ -134,7 +134,7 @@ PRD §4 edge case: a member reports someone during or right after a plan.
 
 ## Appeals (VR-6)
 
-- Users can appeal any verification rejection, suspension, ban, or content rejection from `suspended`, `(verify)/result`, `settings/appeals`, or the rejected item.
+- Users can appeal any verification rejection, suspension, ban, or content rejection from `suspended`, `verify/result`, `settings/appeals`, or the rejected item (all lead to the `appeal` route).
 - One open appeal per subject. Appeal text is screened (S-20) but never auto-rejected; held terms just flag it.
 - Appeals go to `/appeals` with `due_at = created + 48 h`. The appeal reviewer must not be the person who made the original decision when two reviewers exist (shown as a warning, not enforced, while the team is two people).
 - Outcomes: `upheld` (decision reversed; user restored, photo approved, verification passed, etc.) or `denied` (decision stands, with a short human-written reason). Both notify the user in-app.

@@ -17,3 +17,7 @@ ios/
 *.orig.*
 web-build/
 coverage/
+.next/
+apps/admin/next-env.d.ts
+*.tsbuildinfo
+.ci-export/

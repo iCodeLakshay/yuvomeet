@@ -26,12 +26,12 @@ The PRD lists "contacts" among consent purposes. P0 does not read the phone's co
 
 ## 2. Consent
 
-- **C-1** A purpose-specific consent screen (`(entry)/consent`) appears after OTP and before profile creation. It explains, one line each: camera (profile photos, selfie check), location (one-time check-in and SOS, never tracked), notifications (plan updates and chat). Each is a separate toggle; none is pre-ticked.
+- **C-1** A purpose-specific consent screen (`(onboarding)/consent`) appears after OTP and before profile creation. It explains, one line each: camera (profile photos, selfie check), location (one-time check-in and SOS, never tracked), notifications (plan updates and chat). Each is a separate toggle; none is pre-ticked.
 - **C-2** OS permission prompts are requested only at the moment of use (camera on photo upload, location on check-in or SOS), after the in-app consent for that purpose. Declining location still allows everything except check-in; SOS then sends the plan details without a location and still shows 112.
 - **C-3** Community rules (ON-4) and terms/privacy acceptance are recorded in `consents` with `policy_version`. A new policy version re-prompts on next open.
 - **C-4** Consent can be withdrawn in `settings/privacy`. Withdrawal writes a new `consents` row and takes effect immediately.
-- **C-5** Consent screens and policies are available in Hindi and English. ⚖️ Confirm whether DPDP rules require additional languages or a specific notice format.
-- **C-6** KYC consent is shown on `(verify)/intro` before the provider SDK opens: what is checked, what is stored (verdict, birth year, gender result), what is never stored. HyperVerge's own consent step (DigiLocker) follows.
+- **C-5** The app is English only. ⚖️ Confirm whether DPDP rules require the consent notice and policies in Hindi or another language; if so, publish translated policy pages on the website and link them from `help`.
+- **C-6** KYC consent is shown on `verify` before the provider flow opens: what is checked, what is stored (verdict, birth year, gender result), what is never stored. HyperVerge's own consent step (DigiLocker) follows.
 
 ## 3. Retention
 
@@ -55,7 +55,7 @@ The PRD lists "contacts" among consent purposes. P0 does not read the phone's co
 | Right | Where | Rule |
 | ----- | ----- | ---- |
 | Access and export | `settings/privacy` → "Download my data" | `export-data` builds a JSON file (profile, photos as signed links valid 7 days, plans, own messages, reports filed, consents, verification verdicts) in the private `exports` bucket; delivered in-app as a file via the share sheet (ON-6). Ready within minutes; push when done. |
-| Correction | `(profile)/edit` | All profile fields except verified fields; gender via support (VR-3, S-42); birth year via appeal. |
+| Correction | `settings/profile` | All profile fields except verified fields; gender via support (VR-3, S-42); birth year via appeal. |
 | Deletion | `settings` → `settings/delete` → confirm | 3 taps from settings (ON-6). Immediate effect: sessions revoked, profile hidden, pending joins withdrawn, hosted future plans cancelled with member notice. Purge within 30 days. |
 | Withdraw consent | `settings/privacy` | C-4 |
 | Grievance | `help` and policy page | Grievance officer name, email, and response timeline shown in the app and on the website. ⚖️ Confirm required response times under DPDP and IT Rules. |
@@ -89,7 +89,7 @@ The PRD lists "contacts" among consent purposes. P0 does not read the phone's co
 
 The PRD flags that the IT Rules likely apply to a platform with user content. Product hooks to support whatever counsel confirms:
 
-- Published terms, privacy policy, community rules, and safety policy, in Hindi and English, linked from `help` and the store listing.
+- Published terms, privacy policy, community rules, and safety policy, linked from `help` and the store listing (translations if counsel requires them, see C-5).
 - Grievance officer appointed and contact published (§4).
 - Complaint acknowledgement and resolution timelines tracked in `moderation_queue.due_at` and `appeals.due_at`.
 - Takedown on lawful order: admin "remove content" action with reason, logged in `audit_log`.
@@ -104,7 +104,7 @@ The PRD flags that the IT Rules likely apply to a platform with user content. Pr
 
 Hand this list to counsel along with this doc and [security.md](security.md):
 
-- [ ] Privacy policy and terms of use drafted (Hindi and English), covering every row in §1 and §3.
+- [ ] Privacy policy and terms of use drafted, covering every row in §1 and §3.
 - [ ] Notice and consent format meets DPDP rules (C-1 to C-6).
 - [ ] Retention periods confirmed: plan chats (90 days after close), records kept after deletion (proposed 3 years), call logs (90 days), backups.
 - [ ] Storing `id_fingerprint` (HMAC of the KYC provider's document reference) to prevent duplicate and minor accounts: lawful basis and retention.

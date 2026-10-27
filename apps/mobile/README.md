@@ -153,8 +153,11 @@ adb install -r path\to\downloaded.apk
 cd d:\Projects\Yuvomeet
 pnpm typecheck
 
-# Tests + security/route checks
+# Shared tests + secret scan
 pnpm test
+
+# Database security suite (needs `supabase start`)
+pnpm db:test
 
 # Clear Metro cache
 cd apps\mobile
@@ -206,12 +209,23 @@ cd apps\mobile
 pnpm exec expo run:android --device
 ```
 
-Use `pnpm exec expo` (or `pnpm start` / `pnpm android`) so the CLI matches **Expo SDK 53** in this app, not whatever `npx` downloads.
+Use `pnpm exec expo` (or `pnpm start` / `pnpm android`) so the CLI matches **Expo SDK 57** in this app, not whatever `npx` downloads.
 
 ---
 
 ## Notes
 
 - `pnpm start` in `apps/mobile` uses `--dev-client`. **Preview/production** APKs run standalone; **development** EAS APKs still need Metro (`pnpm mobile:start`) unless you add EAS Update later.
-- Without real Supabase env vars, the app uses the built-in mock/offline store for local exploration.
+- The app always talks to Supabase. For local work run `supabase start` at the repo root and point `EXPO_PUBLIC_SUPABASE_URL` at it (`http://10.0.2.2:54321` from the emulator, your PC's LAN IP from a phone). Test numbers `+91 99999 00001` to `00003` take OTP `123456` (see `supabase/config.toml`).
+- Locally, `kyc-start` applies a passing verification without HyperVerge, so you can test joining and hosting.
 - Android package id: `app.yuvomeet` (see [`app.config.ts`](./app.config.ts)).
+
+## Code layout
+
+| Folder | What lives there |
+| ------ | ---------------- |
+| `app/` | Expo Router routes (see the route inventory in [docs/README.md](../../docs/README.md)) |
+| `src/ui/` | Design system from Stitch: tokens (`theme.ts`) and every primitive. Screens never hard-code colours |
+| `src/features/` | Data hooks and feature components per area (plans, chat, safety, profile, session…) |
+| `src/lib/` | Supabase client, encrypted MMKV, query cache, media upload, telemetry (Sentry, PostHog) |
+| `assets/` | Generated icon, adaptive icon, splash, notification icon, welcome hero |

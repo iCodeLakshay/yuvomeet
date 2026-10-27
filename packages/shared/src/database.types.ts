@@ -336,6 +336,12 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "conversation_mutes_conversation_id_fkey"
+            columns: ["conversation_id"]
+            referencedRelation: "my_chats"
+            referencedColumns: ["conversation_id"]
+          },
+          {
             foreignKeyName: "conversation_mutes_user_id_fkey"
             columns: ["user_id"]
             referencedRelation: "admin_user_summary"
@@ -509,6 +515,12 @@ export type Database = {
             columns: ["conversation_id"]
             referencedRelation: "conversations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            referencedRelation: "my_chats"
+            referencedColumns: ["conversation_id"]
           },
           {
             foreignKeyName: "messages_sender_id_fkey"
@@ -1624,6 +1636,39 @@ export type Database = {
           },
         ]
       }
+      my_chats: {
+        Row: {
+          approved_count: number | null
+          closes_at: string | null
+          conversation_id: string | null
+          cover_path: string | null
+          last_at: string | null
+          last_body: string | null
+          last_is_mine: boolean | null
+          last_is_photo: boolean | null
+          last_sender_name: string | null
+          plan_id: string | null
+          starts_at: string | null
+          status: Database["public"]["Enums"]["conversation_status"] | null
+          title: string | null
+          venue_name: string | null
+        }
+        ComputedFields: never
+        Relationships: [
+          {
+            foreignKeyName: "conversations_plan_id_fkey"
+            columns: ["plan_id"]
+            referencedRelation: "plan_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_plan_id_fkey"
+            columns: ["plan_id"]
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       my_verification: {
         Row: {
           attempt: number | null
@@ -1961,6 +2006,18 @@ export type Database = {
           p_target_user_id: string
         }
         Returns: string
+      }
+      svc_analytics_ack: { Args: { p_ids: number[] }; Returns: undefined }
+      svc_analytics_pending: {
+        Args: { p_limit?: number }
+        Returns: {
+          city_slug: string
+          created_at: string
+          distinct_id: string
+          event: string
+          id: number
+          props: Json
+        }[]
       }
       svc_apply_media: {
         Args: {

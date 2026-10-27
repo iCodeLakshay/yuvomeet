@@ -40,18 +40,17 @@ Principles:
 
 ## Monorepo
 
-Created in the first code slice, not in this docs pass.
-
 ```
 apps/
-  mobile/        Expo, Expo Router, HeroUI Native, Uniwind. Android 8+ first.
-  admin/         Next.js App Router, HeroUI React v3. Admin sessions only.
+  mobile/        Expo SDK 57 dev builds, Expo Router, StyleSheet design system (src/ui). Android 8+ first.
+  admin/         Next.js App Router, plain CSS on the same tokens. Admin sessions only.
 supabase/
-  migrations/    SQL: tables, enums, RLS, triggers, functions, pg_cron jobs
-  functions/     Edge Functions (Deno)
+  migrations/    0001 schema … 0010 baseline data: tables, RLS, views, triggers, RPCs, jobs
+  functions/     Edge Functions (Deno, npm: and jsr: imports only)
+  tests/         pgTAP security suite (`supabase test db`)
   seed.sql       Kota city, test venues (local and staging only)
 packages/
-  shared/        Zod schemas, generated database types, constants (caps, windows)
+  shared/        Generated database types, constants, validation, screening, analytics allow-list
 docs/
 ```
 
@@ -61,8 +60,10 @@ docs/
 
 ### Mobile
 
-- Expo SDK current at build start, Expo Router, development builds via EAS (maps, MMKV, and later RevenueCat need native modules, so Expo Go is not the target).
-- Libraries wired in the foundations slice so later screens do not invent plumbing: `@supabase/supabase-js`, `@tanstack/react-query`, `react-hook-form`, `zod`, `i18next` with `expo-localization` (Hindi and English from the first screen), `expo-image`, `@shopify/flash-list`, `react-native-mmkv`, `react-native-maps`, `expo-location`, `expo-notifications`, `expo-secure-store`, `posthog-react-native`, `@sentry/react-native`.
+- Expo SDK 57 (React Native 0.86, New Architecture), Expo Router with typed routes, development builds via EAS. Native modules (maps, MMKV, Nitro) rule out Expo Go; any React Native library with native code can be added through a config plugin or prebuild.
+- Libraries: `@supabase/supabase-js`, `@tanstack/react-query` (persisted to MMKV), `expo-image`, `@shopify/flash-list` v2, `react-native-mmkv` v4 (encrypted), `react-native-reanimated` 4, `react-native-maps` (lite mode), `expo-location`, `expo-notifications`, `expo-secure-store`, `posthog-react-native`, `@sentry/react-native`. No form, schema or i18n libraries: validation is in `packages/shared/src/validation.ts`, and the app is English only.
+- UI: `src/ui` holds every primitive (Text, Button, Card, Chip, Field, Header, Screen, Sheet header, Badge, Notice, StatusHero…). Screens compose these; colors and type come only from `theme.ts`. Animations use Reanimated on transform and opacity only.
+- Navigation: native stack, native form sheets for the Stitch bottom drawers, and a custom pill tab dock (the Stitch design) over expo-router Tabs with lazy, frozen screens.
 - Offline: React Query cache persisted to MMKV, so plans already loaded can be viewed offline. Outgoing chat messages are queued in MMKV with a client-generated UUID and flushed on reconnect; the UUID makes the insert idempotent.
 - Chat UI is a thin FlashList bound to a Realtime channel. No chat SDK.
 - Accessibility: text scales to 130% without clipping; tap targets at least 44 px. Enforced in screen review, not by this doc's tooling.
@@ -71,7 +72,7 @@ docs/
 
 - Next.js App Router deployed on Vercel with server functions pinned to `bom1` (Mumbai).
 - Admin users sign in with Supabase Auth (email + password with TOTP MFA). The `admin` role claim comes from the custom access token hook ([security.md](security.md)).
-- Reads go through the admin's own JWT and admin RLS policies. The service role key is used only in server actions for operations that RLS cannot express (for example, writing a ban that also revokes sessions). It is never sent to the browser.
+- Reads go through the admin's own JWT and admin RLS policies. Writes call `admin_*` RPCs, which check the role, write `audit_log`, and revoke sessions on suspend or ban inside the same transaction. The console therefore holds no service role key at all.
 
 ## Request paths
 
@@ -81,15 +82,16 @@ docs/
 | Join request, approve, decline, leave | App → Postgres RPC (`security definer`) | Caps, audience, and state transitions must be atomic |
 | Create plan | App → Postgres RPC `create_plan` | Validates venue, 3 h lead, 21:00 cut-off, weekly cap |
 | Send message | App → insert into `messages` (RLS) → trigger screens text | Realtime broadcasts the committed row |
-| Upload photo | App → signed upload URL into `quarantine` bucket → Storage webhook → Edge Function `moderate-image` | Rekognition call needs AWS credentials |
+| Upload photo | App → upload into own folder of the `quarantine` bucket → Edge Function `moderate-image` (EXIF stripped, Rekognition, copy to `media`) | Rekognition call needs AWS credentials |
 | OTP send | App → Supabase Auth → Send SMS hook → Edge Function `send-sms` → MSG91 | Supabase owns the OTP; MSG91 only delivers |
 | OTP verify | App → Edge Function `otp-verify` → Supabase Auth `verifyOtp` → session back to app | Enforces the 5-tries / 30-minute lock (ON-1) |
-| Verification | App → Edge Function `kyc-start` → HyperVerge SDK in app → HyperVerge webhook → Edge Function `kyc-webhook` | Secrets and verdict writes are server-side |
+| Verification | App → Edge Function `kyc-start` → HyperVerge web flow in an in-app browser → HyperVerge webhook → Edge Function `kyc-webhook` | Secrets and verdict writes are server-side |
 | Check-in | App → Edge Function `check-in` with one GPS fix | Distance checked server-side; coordinate discarded |
 | Report, block | App → Postgres RPC | Auto-suspend logic runs in the same transaction |
 | Push | Postgres trigger → `pg_net` → Edge Function `push` → Expo Push | Tokens from `push_tokens` |
 | Export | App → Edge Function `export-data` → JSON file in private bucket → signed URL | Runs as the user; one file per request |
-| Admin actions | Admin server action → RPC or service role | Every action writes `audit_log` |
+| Admin actions | Admin server action → `admin_*` RPC on the admin's session | Every action writes `audit_log` |
+| Server-side analytics | Trigger or job → `private.analytics_outbox` → `pg_cron` → Edge Function `analytics-flush` → PostHog | Events that happen while the app is closed |
 
 ## Postgres function vs Edge Function
 
@@ -102,7 +104,7 @@ Use an **Edge Function** only when one of these is true:
 - It handles data we must not store (the check-in GPS fix).
 - It produces a file (export).
 
-Edge Functions validate input with the Zod schemas from `packages/shared` (Deno can import them), then write through a service-role client scoped to the function. Every Edge Function that acts for a user verifies the caller's JWT first.
+Edge Functions validate input with the plain validators in `packages/shared` (imported by relative path), then call `svc_*` RPCs, which only the service role may execute. Every Edge Function that acts for a user verifies the caller's JWT first.
 
 | Name | Kind | Purpose |
 | ---- | ---- | ------- |
@@ -127,6 +129,7 @@ Edge Functions validate input with the Zod schemas from `packages/shared` (Deno 
 | `push` | Edge | Expo Push fan-out |
 | `export-data` | Edge | ON-6 export |
 | `delete-account` | Edge | ON-6 delete (revokes sessions, schedules purge) |
+| `analytics-flush` | Edge, `pg_cron` every 5 min | Drains the analytics outbox to PostHog through the shared allow-list |
 | `revenuecat-webhook` (P1) | Edge | SB-2 to SB-4 |
 | `razorpay-webhook` (P1) | Edge | PL-8, VN-4 |
 | `livekit-token` (P1) | Edge | VC-1 |

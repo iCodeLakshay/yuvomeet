@@ -1,12 +1,12 @@
 {
-  "extends": "../../tsconfig.base.json",
+  "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "jsx": "react-native",
-    "lib": ["ES2022", "DOM"],
-    "noEmit": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "allowImportingTsExtensions": true,
     "paths": {
       "@/*": ["./src/*"]
     }
   },
-  "include": ["app/**/*", "src/**/*", "app.config.ts"]
+  "include": ["app/**/*", "src/**/*", "app.config.ts", ".expo/types/**/*.ts", "expo-env.d.ts"]
 }

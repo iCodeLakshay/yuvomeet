@@ -9,8 +9,8 @@ Route IDs refer to the inventory in [README.md](README.md). Rules S-n are in [se
 1. Migration with tables, RLS, helper functions, and pgTAP tests for every S-rule the slice touches.
 2. RPCs and Edge Functions with tests (pgTAP for SQL, Deno tests for Edge).
 3. Regenerate database types into `packages/shared`.
-4. Screens: read the Stitch frame with the Stitch MCP; build with HeroUI Native components via the HeroUI Native MCP (`get_docs`, then `get_component_docs`). Admin screens use the HeroUI React v3 MCP the same way.
-5. Strings in Hindi and English via i18next from the first commit. No hard-coded copy.
+4. Screens: read the Stitch frame with the Stitch MCP; build from `apps/mobile/src/ui` primitives and `theme.ts` tokens. Add a primitive only when two screens need it. Admin screens use the same tokens in plain CSS.
+5. Copy is English only and lives in the screen; there is no i18n layer.
 6. Analytics events from the table at the end of this doc, using the shared typed wrapper.
 7. Demo on a staging development build.
 
@@ -20,20 +20,20 @@ Route IDs refer to the inventory in [README.md](README.md). Rules S-n are in [se
 
 Closes: none directly; prerequisite for all.
 
-- Monorepo (`apps/mobile`, `apps/admin`, `supabase/`, `packages/shared`), pnpm, TypeScript strict, ESLint, Prettier.
+- Monorepo (`apps/mobile`, `apps/admin`, `supabase/`, `packages/shared`), pnpm, TypeScript strict.
 - Supabase projects: local (CLI), staging and production in `ap-south-1`. Migrations applied by CI.
-- Expo app with Expo Router, HeroUI Native, Uniwind, all libraries listed in [architecture.md](architecture.md); EAS `development`, `preview`, `production` profiles.
-- Admin app on Vercel (`bom1`), HeroUI React v3, admin login with TOTP.
-- Sentry (scrubber, S-9), PostHog (allow-listed wrapper), i18next (hi, en), React Query + MMKV persistence.
-- CI: typecheck, lint, unit tests, pgTAP, type-drift check, RLS-enabled check (S-1), phone-column check (S-5), secret grep (S-2), gitleaks.
+- Expo SDK 57 app with Expo Router and the `src/ui` design system, all libraries listed in [architecture.md](architecture.md); EAS `development`, `preview`, `production` profiles.
+- Admin app on Vercel (`bom1`), admin login with TOTP.
+- Sentry (scrubber, S-9), PostHog (allow-listed wrapper plus server-side outbox), React Query + MMKV persistence.
+- CI (`.github/workflows/ci.yml`): typecheck, shared tests, secret scan (S-2), admin build, Android JS bundle, Deno check and tests, pgTAP (S-1, S-5 and the rest of security.md), type-drift check, gitleaks. ESLint and Prettier are not set up yet.
 - Start external lead-time items now: MSG91 DLT registration and template, HyperVerge contract and sandbox, AWS account with Rekognition in `ap-south-1`, Google Play developer account, Maps API key.
 
-Works when: a development build on an Android 8 device opens, switches Hindi/English, reports a test error to Sentry with only a user ID, and CI is green with all checks enabled.
+Works when: a development build on an Android 8 device opens, reports a test error to Sentry with only a user ID, and CI is green with all checks enabled.
 
 ### 1. OTP sign-in and city waitlist
 
 Closes: ON-1, ON-2.
-Routes: `(entry)/splash`, `(entry)/city`, `(entry)/city-waitlist`, `(entry)/phone`, `(entry)/otp`, `(entry)/otp-locked`, `(entry)/consent`.
+Routes: `(auth)/index`, `(auth)/age`, `(auth)/phone`, `(auth)/otp` (with lockout state), `(onboarding)/consent`, `(onboarding)/city`, `(onboarding)/waitlist`.
 Admin: `/cities` (AD-4 status only).
 
 - `cities`, `waitlist_signups`, `consents`, `profiles` row trigger, `private.otp_attempts`.
@@ -47,7 +47,7 @@ Events: `otp_requested`, `otp_verified`, `city_selected`.
 ### 2. Profile and photo gate
 
 Closes: ON-3, ON-4, VR-4 (profile text and photos).
-Routes: `(profile)/create`, `(profile)/photos`, `(profile)/interests`, `(profile)/edit`, `(entry)/rules`, `user/[id]`.
+Routes: `(onboarding)/profile`, `(onboarding)/photos`, `(onboarding)/interests`, `(onboarding)/rules`, `settings/profile`, `user/[id]`.
 
 - `profile_photos`, `interests`, `colleges`, `profile_stats`, `public_profiles` view.
 - Quarantine upload, `moderate-image` with Rekognition, EXIF strip, hash cache (S-21 to S-24).
@@ -62,7 +62,7 @@ Events: `profile_completed`.
 ### 3. Verification
 
 Closes: VR-1, VR-2, VR-3, VR-7.
-Routes: `(verify)/intro`, `(verify)/id-check`, `(verify)/selfie`, `(verify)/result`.
+Routes: `verify`, `verify/result`, `verify-gate` (sheet). The ID and selfie steps run inside HyperVerge's web flow, so there are no separate app screens for them.
 
 - `verification_checks`, `private.identity_fingerprints`, `private.kyc_cache`.
 - `kyc-start`, `kyc-webhook` (S-38, S-39); thresholds in `private.settings`; one retry then manual review.
@@ -139,7 +139,7 @@ Events: `check_in`, `plan_completed`, `rating_submitted`.
 ### 9. Admin console: queue, lookup, actions, appeals
 
 Closes: AD-1, AD-2, AD-3, SF-7, VR-6.
-Routes: `(verify)/appeal`, `settings/appeals`.
+Routes: `appeal`, `settings/appeals`, `suspended`.
 Admin: `/queue`, `/queue/[id]`, `/users`, `/users/[id]`, `/plans/[id]`, `/appeals`, `/audit`.
 
 - `moderation_queue` views, `appeals`, `audit_log` (insert-only, S-46), custom access token hook (S-43), MFA requirement (S-44).
@@ -169,7 +169,7 @@ Closes: performance and reliability NFRs; readiness for closed beta (stage 2).
 - Load test on staging: 10,000 MAU profile, 500 concurrent chat channels, feed RPC under load.
 - Cold start under 3 s on an EAS production build on a mid-range Android.
 - Accessibility pass: 130% text, 44 px targets, TalkBack labels on primary actions.
-- Hindi copy review by a native speaker.
+- Copy review of every screen against the Stitch frames and the community rules.
 - Backups and PITR verified by a restore drill.
 - Rekognition quota increase requested; cost-guard alerts tested.
 - Play data safety form and UGC requirements checked against [privacy-and-compliance.md](privacy-and-compliance.md).

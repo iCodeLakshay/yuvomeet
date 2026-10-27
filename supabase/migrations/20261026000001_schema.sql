@@ -124,6 +124,17 @@ create table private.deletion_jobs (
   completed_at timestamptz null
 );
 
+-- Server-side analytics (implementation-plan §Analytics): events that happen while the app is
+-- closed. Props hold allow-listed keys only; analytics-flush re-checks them before PostHog.
+create table private.analytics_outbox (
+  id bigint generated always as identity primary key,
+  event text not null,
+  distinct_id uuid not null,
+  city_slug text not null default 'unknown',
+  props jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+
 -- -----------------------------------------------------------------------------
 -- Public tables (S-1 RLS on all, S-5 no phone column)
 -- -----------------------------------------------------------------------------

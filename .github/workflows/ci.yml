@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app:
+    name: Typecheck, tests, secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+      - name: Admin build
+        run: pnpm --filter @yuvomeet/admin build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder
+      - name: Android JS bundle
+        working-directory: apps/mobile
+        run: npx expo export --platform android --output-dir ../../.ci-export
+        env:
+          CI: 1
+          EXPO_NO_TELEMETRY: 1
+
+  functions:
+    name: Edge Functions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - working-directory: supabase/functions
+        run: deno check */index.ts && deno test _shared/
+
+  database:
+    name: Database (pgTAP + type drift)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.122.0
+      - run: supabase start -x studio,imgproxy,inbucket,edge-runtime,logflare,vector,supavisor
+      - run: supabase test db
+      - name: Generated types match the migrations
+        run: |
+          supabase gen types typescript --local --schema public > /tmp/database.types.ts
+          diff -u packages/shared/src/database.types.ts /tmp/database.types.ts || {
+            echo "::error::database.types.ts is stale. Run 'pnpm db:types' and commit the result."; exit 1; }
+
+  secrets:
+    name: Gitleaks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

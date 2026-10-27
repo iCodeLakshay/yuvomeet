@@ -24,7 +24,18 @@ begin
       then 'attended' else 'no_show' end::public.member_status
     from done d
     where pm.plan_id = d.id and pm.status = 'approved'
-    returning pm.user_id, pm.status, (pm.user_id = d.host_id) as is_host
+    returning pm.plan_id, pm.user_id, pm.status, (pm.user_id = d.host_id) as is_host
+  ), tracked as (
+    -- plan_completed is a server-side event (implementation-plan §Analytics). A data-modifying
+    -- CTE always runs, unlike a SELECT one.
+    insert into private.analytics_outbox (event, distinct_id, city_slug, props)
+    select 'plan_completed', d.host_id, coalesce(c.slug, 'unknown'), jsonb_build_object(
+      'plan_id', d.id,
+      'attended_count', (select count(*) from marked m where m.plan_id = d.id and m.status = 'attended'))
+    from done d
+    join public.plans pl on pl.id = d.id
+    left join public.cities c on c.id = pl.city_id
+    where d.host_id is not null
   ), member_stats as (
     update public.profile_stats ps
     set plans_attended = ps.plans_attended + s.attended,
@@ -123,6 +134,7 @@ begin
   delete from public.notifications where created_at < now() - interval '90 days';
   delete from private.edge_rate where window_start < now() - interval '2 days';
   delete from private.webhook_events where received_at < now() - interval '7 days';
+  delete from private.analytics_outbox where created_at < now() - interval '7 days';
 
   update public.profile_stats ps set
     late_cancel_count_30d = (
@@ -171,3 +183,5 @@ select cron.schedule('plan_lifecycle_tick', '*/5 * * * *', 'select private.plan_
 select cron.schedule('rating_prompt_tick', '*/5 * * * *', 'select private.rating_prompt_tick()');
 select cron.schedule('queue_age_tick', '*/15 * * * *', 'select private.queue_age_tick()');
 select cron.schedule('retention_tick', '30 21 * * *', 'select private.retention_tick()');
+select cron.schedule('analytics_flush', '*/5 * * * *',
+  $$select private.call_function('analytics-flush', '{}'::jsonb) where exists (select 1 from private.analytics_outbox)$$);

@@ -337,5 +337,40 @@ from public.blocks b
 join public.profiles p on p.id = b.blocked_id
 where b.blocker_id = auth.uid();
 
+-- CH-1: chat list with the latest visible message (respects blocks and holds).
+create view public.my_chats
+with (security_barrier = true)
+as
+select
+  c.id as conversation_id,
+  c.plan_id,
+  c.status,
+  c.closes_at,
+  pl.title,
+  pl.starts_at,
+  pl.approved_count,
+  v.name as venue_name,
+  (select vp.path from public.venue_photos vp
+   where vp.venue_id = v.id and vp.status = 'approved' order by vp.position limit 1) as cover_path,
+  lm.body as last_body,
+  lm.image_path is not null as last_is_photo,
+  lm.created_at as last_at,
+  lp.first_name as last_sender_name,
+  (lm.sender_id = auth.uid()) as last_is_mine
+from public.conversations c
+join public.plans pl on pl.id = c.plan_id
+join public.venues v on v.id = pl.venue_id
+left join lateral (
+  select m.body, m.image_path, m.created_at, m.sender_id
+  from public.messages m
+  where m.conversation_id = c.id
+    and (m.status = 'visible' or m.sender_id = auth.uid())
+    and not app.is_blocked_between(auth.uid(), m.sender_id)
+  order by m.created_at desc
+  limit 1
+) lm on true
+left join public.profiles lp on lp.id = lm.sender_id
+where app.is_conversation_member(auth.uid(), c.id);
+
 grant select on public.public_profiles, public.plan_cards, public.plan_roster,
-  public.join_requests, public.my_verification, public.my_blocks to authenticated;
+  public.join_requests, public.my_verification, public.my_blocks, public.my_chats to authenticated;

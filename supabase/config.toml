@@ -108,3 +108,7 @@ verify_jwt = false
 
 [functions.push]
 verify_jwt = false
+
+
+[functions.analytics-flush]
+verify_jwt = false

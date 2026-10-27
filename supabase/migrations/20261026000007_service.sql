@@ -563,6 +563,29 @@ begin
 end;
 $$;
 
+-- -----------------------------------------------------------------------------
+-- analytics-flush: read a batch, then delete what PostHog accepted
+-- -----------------------------------------------------------------------------
+create function public.svc_analytics_pending(p_limit int default 500)
+returns table (id bigint, event text, distinct_id uuid, city_slug text, props jsonb, created_at timestamptz)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select o.id, o.event, o.distinct_id, o.city_slug, o.props, o.created_at
+  from private.analytics_outbox o order by o.id limit least(p_limit, 1000);
+$$;
+
+create function public.svc_analytics_ack(p_ids bigint[])
+returns void
+language sql
+security definer
+set search_path = ''
+as $$
+  delete from private.analytics_outbox where id = any (p_ids);
+$$;
+
 revoke execute on function
   public.svc_otp_locked_until(text), public.svc_otp_record(text, boolean),
   public.svc_rate_hit(uuid, text, int, int), public.svc_vendor_usage(text, int), public.svc_webhook_seen(text, text),
@@ -571,7 +594,8 @@ revoke execute on function
   public.svc_apply_media(text, uuid, text, text, jsonb, numeric, int, boolean),
   public.svc_check_in_context(uuid, uuid), public.svc_mark_checked_in(uuid, uuid),
   public.svc_push_tokens(uuid[]), public.svc_drop_push_tokens(text[]),
-  public.svc_export_user(uuid), public.svc_record_export(uuid, text), public.svc_request_deletion(uuid)
+  public.svc_export_user(uuid), public.svc_record_export(uuid, text), public.svc_request_deletion(uuid),
+  public.svc_analytics_pending(int), public.svc_analytics_ack(bigint[])
 from public, anon, authenticated;
 
 grant execute on function
@@ -582,5 +606,6 @@ grant execute on function
   public.svc_apply_media(text, uuid, text, text, jsonb, numeric, int, boolean),
   public.svc_check_in_context(uuid, uuid), public.svc_mark_checked_in(uuid, uuid),
   public.svc_push_tokens(uuid[]), public.svc_drop_push_tokens(text[]),
-  public.svc_export_user(uuid), public.svc_record_export(uuid, text), public.svc_request_deletion(uuid)
+  public.svc_export_user(uuid), public.svc_record_export(uuid, text), public.svc_request_deletion(uuid),
+  public.svc_analytics_pending(int), public.svc_analytics_ack(bigint[])
 to service_role;

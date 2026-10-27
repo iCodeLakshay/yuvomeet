@@ -1,68 +1,65 @@
-/**
- * S-9: Privacy-Safe Telemetry (Sentry Scrubber + Allowlisted PostHog Wrapper)
- * No phone, name, photo URL, bio, message text, coordinates, or KYC details ever leave the device.
- */
-
+import * as Sentry from '@sentry/react-native';
 import {
-  type AnalyticsEventMap,
-  type AnalyticsEventName,
   sanitizeAnalyticsPayload,
   scrubSentryEvent,
+  type AnalyticsEventMap,
+  type AnalyticsEventName,
 } from '@yuvomeet/shared';
-
-let currentUserId: string | null = null;
-let currentCitySlug = 'kota';
-
-export function setTelemetryIdentity(userId: string | null, citySlug = 'kota'): void {
-  currentUserId = userId;
-  currentCitySlug = citySlug;
-}
+import PostHog from 'posthog-react-native';
+import { env } from './env';
 
 /**
- * Typed analytics event capture. Strips all non-allowlisted properties via `@yuvomeet/shared`.
+ * S-9: crash reports and analytics carry the Supabase user id only. Sentry events pass the
+ * shared scrubber; PostHog only receives allow-listed properties. No replay, no autocapture.
  */
-export function trackEvent<K extends AnalyticsEventName>(
-  event: K,
-  properties: AnalyticsEventMap[K],
-): Record<string, string | number | boolean> {
-  const safePayload = sanitizeAnalyticsPayload(event, properties, currentCitySlug);
-  // In production/staging with PostHog configured, this dispatches to EU PostHog with distinct_id = userId
-  if (process.env.EXPO_PUBLIC_APP_ENV !== 'production') {
-    console.debug('[Analytics]', event, {
-      distinct_id: currentUserId ?? 'anonymous',
-      ...safePayload,
-    });
-  }
-  return safePayload;
+export const posthog = env.posthogKey
+  ? new PostHog(env.posthogKey, {
+      host: env.posthogHost,
+      captureAppLifecycleEvents: false,
+      enableSessionReplay: false,
+      personProfiles: 'identified_only',
+      disabled: env.appEnv === 'development',
+    })
+  : null;
+
+export function initTelemetry() {
+  if (!env.sentryDsn) return;
+  Sentry.init({
+    dsn: env.sentryDsn,
+    environment: env.appEnv,
+    sendDefaultPii: false,
+    attachScreenshot: false,
+    attachViewHierarchy: false,
+    tracesSampleRate: env.appEnv === 'production' ? 0.2 : 1,
+    beforeSend: (event) => scrubSentryEvent(event),
+    beforeBreadcrumb: (crumb) => (crumb.category === 'console' || crumb.category === 'ui.input' ? null : crumb),
+  });
 }
 
-/**
- * S-9: Report error to Sentry after scrubbing all PII and keeping only `{ user: { id } }`.
- */
-export function reportErrorSafe(error: unknown, contextTag?: string): void {
-  const rawEvent = {
-    message: error instanceof Error ? error.message : String(error),
-    user: currentUserId ? { id: currentUserId } : undefined,
-    tags: contextTag ? { surface: contextTag } : undefined,
-    timestamp: new Date().toISOString(),
+let city = 'kota';
+
+export function identify(userId: string | null, citySlug?: string) {
+  if (citySlug) city = citySlug;
+  Sentry.setUser(userId ? { id: userId } : null);
+  if (!posthog) return;
+  if (userId) posthog.identify(userId);
+  else posthog.reset();
+}
+
+export function track<K extends AnalyticsEventName>(event: K, props: AnalyticsEventMap[K]) {
+  posthog?.capture(event, sanitizeAnalyticsPayload(event, props, city));
+}
+
+export function reportError(error: unknown) {
+  Sentry.captureException(error);
+}
+
+/** Performance budgets (architecture.md): feed first page, chat delivery, cold start. */
+export function startSpan(name: 'feed_first_page' | 'chat_delivery') {
+  const start = performance.now();
+  return () => {
+    Sentry.setMeasurement(name, performance.now() - start, 'millisecond');
   };
-  const scrubbed = scrubSentryEvent(rawEvent);
-  if (process.env.EXPO_PUBLIC_APP_ENV !== 'production') {
-    console.debug('[SentryScrubbed]', scrubbed);
-  }
 }
 
-/**
- * Performance span measurement for NFR budgets:
- * - Feed first page < 2000ms
- * - Chat delivery < 1000ms
- */
-export function startPerfSpan(name: 'feed_first_page' | 'chat_delivery' | 'cold_start') {
-  const startedAt = performance.now();
-  return {
-    finish(): number {
-      const durationMs = Math.round(performance.now() - startedAt);
-      return durationMs;
-    },
-  };
-}
+export const wrapRoot = Sentry.wrap;

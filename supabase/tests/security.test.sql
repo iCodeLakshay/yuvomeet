@@ -1,7 +1,7 @@
 -- pgTAP suite for the security.md review checklist. Run with `supabase test db`.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(74);
+select plan(79);
 
 -- -----------------------------------------------------------------------------
 -- Test helpers (rolled back with the transaction)
@@ -352,6 +352,32 @@ select is((select count(*)::int from public.ratings), 0, 'S-19: ratings are not 
 select tests.logout();
 select is((select count(*)::int from public.notifications where user_id = tests.id('man') and kind = 'join_declined'), 1,
   'a declined request sends the neutral notification');
+
+-- -----------------------------------------------------------------------------
+-- Server-side analytics outbox (S-9): allow-listed props, service role only
+-- -----------------------------------------------------------------------------
+select is((select (props->>'attended_count')::int from private.analytics_outbox
+  where event = 'plan_completed' and props->>'plan_id' = tests.id('life_plan')::text), 3,
+  'plan_completed is queued with the attended count (host included)');
+insert into ids values ('an_plan', tests.plan(tests.id('life_host')));
+insert into public.plan_members (plan_id, user_id, status, requested_at)
+values (tests.id('an_plan'), tests.id('life_a'), 'requested', now() - interval '20 minutes');
+update public.plan_members set status = 'approved', decided_at = now()
+where plan_id = tests.id('an_plan') and user_id = tests.id('life_a');
+select is((select (props->>'wait_minutes')::int from private.analytics_outbox
+  where event = 'join_approved' and distinct_id = tests.id('life_a')), 20,
+  'join_approved is queued for the requester with the wait time');
+insert into ids values ('an_new', tests.member('Vee', 'woman', false));
+update public.profiles set verification_status = 'pending' where id = tests.id('an_new');
+update public.profiles set verification_status = 'verified' where id = tests.id('an_new');
+select is((select props from private.analytics_outbox where event = 'verification_passed' and distinct_id = tests.id('an_new')),
+  '{"attempt": 1, "manual": false}'::jsonb, 'verification_passed carries only attempt and manual');
+select tests.login(tests.id('life_a'));
+select throws_ok($$ select count(*) from private.analytics_outbox $$, '42501', null,
+  'S-9: members cannot read the analytics outbox');
+select throws_ok($$ select * from public.svc_analytics_pending(10) $$, '42501', null,
+  'S-8: only the service role can drain the outbox');
+select tests.logout();
 
 select * from finish();
 rollback;

@@ -1,26 +1,25 @@
-/**
- * Supabase Client (S-2: Ships with anon key only, never service_role or vendor secrets)
- */
-
 import { createClient } from '@supabase/supabase-js';
-import { appStorage } from './storage';
+import type { Database } from '@yuvomeet/shared';
+import { AppState } from 'react-native';
+import { env } from './env';
+import { kv } from './storage';
 
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? 'https://kota-mumbai.supabase.co';
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? 'public-anon-placeholder';
-
-export const isLiveSupabaseConfigured =
-  Boolean(process.env.EXPO_PUBLIC_SUPABASE_URL) &&
-  !supabaseUrl.includes('kota-mumbai.supabase.co');
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+/** Anon key only (S-2); every read and write goes through RLS. */
+export const supabase = createClient<Database>(env.supabaseUrl, env.supabaseAnonKey, {
   auth: {
-    storage: {
-      getItem: (key: string) => appStorage.getString(key) ?? null,
-      setItem: (key: string, value: string) => appStorage.set(key, value),
-      removeItem: (key: string) => appStorage.delete(key),
-    },
+    storage: kv,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
   },
 });
+
+// Refresh tokens only while the app is in the foreground (supabase-js guidance for RN).
+AppState.addEventListener('change', (state) => {
+  if (state === 'active') supabase.auth.startAutoRefresh();
+  else supabase.auth.stopAutoRefresh();
+});
+
+export type Tables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row'];
+export type Views<T extends keyof Database['public']['Views']> = Database['public']['Views'][T]['Row'];
+export type Enums<T extends keyof Database['public']['Enums']> = Database['public']['Enums'][T];
