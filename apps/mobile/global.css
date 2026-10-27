@@ -1,0 +1,21 @@
+@import 'tailwindcss';
+@import 'uniwind';
+@import 'heroui-native/styles';
+
+@source './node_modules/heroui-native/lib';
+
+:root,
+.dark {
+  --background: #0d0e13;
+  --foreground: #e3e1e9;
+  --surface: #121318;
+  --surface-secondary: #181920;
+  --surface-tertiary: #1e1f25;
+  --surface-high: #292a2f;
+  --accent: #c6ff3d;
+  --accent-foreground: #0e0f1a;
+  --secondary-violet: #8b5cf6;
+  --trust-emerald: #10b981;
+  --danger: #ffb4ab;
+  --border: rgba(255, 255, 255, 0.08);
+}

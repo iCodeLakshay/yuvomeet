@@ -1,0 +1,22 @@
+{
+  "name": "yuvomeet",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@9.15.9",
+  "scripts": {
+    "typecheck": "pnpm -r typecheck",
+    "test": "node --experimental-strip-types --test packages/shared/src/__tests__/shared.test.ts && node scripts/verify-security-rules.mjs",
+    "check:security": "node scripts/verify-security-rules.mjs",
+    "mobile:start": "pnpm --filter @yuvomeet/mobile start",
+    "mobile:android": "pnpm --filter @yuvomeet/mobile android"
+  },
+  "devDependencies": {
+    "typescript": "~5.8.2"
+  },
+  "pnpm": {
+    "overrides": {
+      "expo-constants": "17.1.8",
+      "expo-linking": "7.1.7"
+    }
+  }
+}
