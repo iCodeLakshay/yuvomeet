@@ -1,7 +1,13 @@
 import type { ConfigContext, ExpoConfig } from 'expo/config';
 
-const INTER = './node_modules/@expo-google-fonts/inter';
-const ICON_FONT = './node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/MaterialIcons.ttf';
+// Use require.resolve so Node walks up the monorepo tree to find packages
+// (avoids hardcoded ./node_modules/ paths that break in hoisted pnpm workspaces)
+const resolvePackage = (pkg: string) =>
+  require.resolve(pkg + '/package.json').replace(/[\\/]package\.json$/, '');
+const INTER = resolvePackage('@expo-google-fonts/inter');
+const ICON_FONT = require.resolve(
+  '@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/MaterialIcons.ttf'
+);
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,

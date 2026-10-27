@@ -16,5 +16,12 @@
   },
   "devDependencies": {
     "typescript": "~5.8.2"
+  },
+  "pnpm": {
+    "overrides": {
+      "react-native": "0.86.3",
+      "expo": "~57.0.31",
+      "@expo/metro-runtime": "^57.0.17"
+    }
   }
 }

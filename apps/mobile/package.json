@@ -8,7 +8,8 @@
     "android": "expo run:android",
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
-    "doctor": "expo install --check"
+    "doctor": "expo install --check",
+    "ios": "expo run:ios"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",
