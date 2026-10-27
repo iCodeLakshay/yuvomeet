@@ -1,75 +1,23 @@
-// Edge Function: delete-account & export-data (ON-6, S-12, Privacy §3-4)
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+// ON-6: immediate effects (sessions revoked, profile hidden, joins withdrawn, hosted plans
+// cancelled), purge scheduled within 30 days, analytics person deleted (privacy §3).
+import { json, serve } from '../_shared/http.ts';
+import { admin, requireUser, unwrap } from '../_shared/supabase.ts';
 
-Deno.serve(async (req: Request) => {
-  if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 });
-  }
+async function deletePostHogPerson(userId: string) {
+  const key = Deno.env.get('POSTHOG_PERSONAL_API_KEY');
+  const project = Deno.env.get('POSTHOG_PROJECT_ID');
+  if (!key || !project) return;
+  const host = Deno.env.get('POSTHOG_API_HOST') ?? 'https://eu.posthog.com';
+  await fetch(`${host}/api/projects/${project}/persons/bulk_delete/`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ distinct_ids: [userId] }),
+  }).catch(() => undefined);
+}
 
-  const authHeader = req.headers.get('Authorization') ?? '';
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-
-  const userClient = createClient(supabaseUrl, anonKey, {
-    global: { headers: { Authorization: authHeader } },
-  });
-  const {
-    data: { user },
-  } = await userClient.auth.getUser();
-
-  if (!user) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
-  }
-
-  const admin = createClient(supabaseUrl, serviceKey);
-  const nowIso = new Date().toISOString();
-  const purgeAfterIso = new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString();
-
-  // Hide profile, withdraw pending joins, cancel future hosted plans, schedule 30-day purge
-  await admin
-    .from('profiles')
-    .update({
-      status: 'deleted',
-      deleted_at: nowIso,
-      updated_at: nowIso,
-    })
-    .eq('id', user.id);
-
-  await admin
-    .from('plan_members')
-    .update({ status: 'withdrawn', updated_at: nowIso })
-    .eq('user_id', user.id)
-    .in('status', ['requested', 'approved']);
-
-  await admin
-    .from('plans')
-    .update({
-      status: 'cancelled',
-      cancel_reason: 'Host account closed',
-      cancelled_at: nowIso,
-      updated_at: nowIso,
-    })
-    .eq('host_id', user.id)
-    .in('status', ['open', 'full']);
-
-  await admin
-    .schema('private')
-    .from('deletion_jobs')
-    .upsert({
-      user_id: user.id,
-      requested_at: nowIso,
-      purge_after: purgeAfterIso,
-    });
-
-  await admin.auth.admin.signOut(user.id, 'global');
-
-  return new Response(
-    JSON.stringify({
-      ok: true,
-      deletedAt: nowIso,
-      purgeScheduledAt: purgeAfterIso,
-    }),
-    { status: 200, headers: { 'Content-Type': 'application/json' } },
-  );
+serve(async (req) => {
+  const userId = await requireUser(req);
+  const purgeAfter = unwrap(await admin.rpc('svc_request_deletion', { p_user: userId }));
+  await deletePostHogPerson(userId);
+  return json({ purge_after: purgeAfter });
 });

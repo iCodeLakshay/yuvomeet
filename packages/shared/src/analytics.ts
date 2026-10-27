@@ -1,8 +1,10 @@
 /**
- * S-9 & Implementation Plan §Analytics events:
- * Strictly typed, allow-listed analytics events and Sentry PII scrubber.
- * Never allows phone, name, photo URL, bio, message text, coordinates, or KYC details.
+ * S-9: typed, allow-listed analytics events and the Sentry PII scrubber.
+ * Event names are fixed in docs/implementation-plan.md. Properties never carry
+ * phone, name, photo, bio, message text, coordinates, gender of a person, or KYC data.
  */
+
+type Audience = 'everyone' | 'women_only' | 'same_college';
 
 export interface AnalyticsEventMap {
   otp_requested: { resend: boolean };
@@ -11,46 +13,24 @@ export interface AnalyticsEventMap {
   profile_completed: { photo_count: number; interest_count: number };
   verification_started: { attempt: number };
   verification_passed: { attempt: number; manual: boolean };
-  verification_failed: {
-    check_type: 'id_age' | 'liveness_face' | 'gender';
-    outcome: 'fail' | 'review' | 'minor';
-  };
+  verification_failed: { check_type: 'id_age' | 'liveness_face' | 'gender'; outcome: 'fail' | 'review' | 'minor' };
   appeal_submitted: { subject: 'verification' | 'suspension' | 'content' | 'ban' };
-  plan_viewed: {
-    plan_id: string;
-    audience: 'everyone' | 'women_only' | 'same_college';
-    activity: string;
-    source: 'feed' | 'link' | 'my_plans';
-  };
+  plan_viewed: { plan_id: string; audience: Audience; activity: string; source: 'feed' | 'link' | 'my_plans' };
   join_requested: { plan_id: string };
   join_approved: { plan_id: string; wait_minutes: number };
-  plan_created: {
-    plan_id: string;
-    activity: string;
-    audience: 'everyone' | 'women_only' | 'same_college';
-    capacity: number;
-    lead_hours: number;
-  };
+  plan_created: { plan_id: string; activity: string; audience: Audience; capacity: number; lead_hours: number };
   check_in: { plan_id: string; minutes_from_start: number };
   plan_completed: { plan_id: string; attended_count: number };
   plan_cancelled: { plan_id: string; late: boolean; by: 'host' | 'admin' };
-  report_submitted: {
-    reason: string;
-    severity: 'severe' | 'standard';
-    context: 'profile' | 'plan' | 'message';
-  };
+  report_submitted: { reason: string; severity: 'severe' | 'standard'; context: 'profile' | 'plan' | 'message' };
   user_blocked: { context: 'profile' | 'plan' | 'message' };
   sos_pressed: { plan_id: string; location_sent: boolean };
   rating_submitted: { plan_id: string; rated_count: number };
-  paywall_viewed: { trigger: string };
-  subscription_started: { product_id: string };
-  ticket_purchased: { plan_id: string; amount_paise: number };
-  venue_offer_redeemed: { venue_id: string };
 }
 
 export type AnalyticsEventName = keyof AnalyticsEventMap;
 
-const ALLOWED_KEYS_BY_EVENT: { [K in AnalyticsEventName]: readonly (keyof AnalyticsEventMap[K])[] } = {
+const ALLOWED_KEYS: { [K in AnalyticsEventName]: readonly (keyof AnalyticsEventMap[K])[] } = {
   otp_requested: ['resend'],
   otp_verified: ['new_user'],
   city_selected: ['city_status'],
@@ -70,81 +50,54 @@ const ALLOWED_KEYS_BY_EVENT: { [K in AnalyticsEventName]: readonly (keyof Analyt
   user_blocked: ['context'],
   sos_pressed: ['plan_id', 'location_sent'],
   rating_submitted: ['plan_id', 'rated_count'],
-  paywall_viewed: ['trigger'],
-  subscription_started: ['product_id'],
-  ticket_purchased: ['plan_id', 'amount_paise'],
-  venue_offer_redeemed: ['venue_id'],
 };
 
-const FORBIDDEN_PII_KEY_PATTERN =
-  /phone|mobile|msisdn|name|first_name|bio|body|message|lat|lng|latitude|longitude|aadhaar|dob|birth|email|photo|avatar|token/i;
+export type SafeProps = Record<string, string | number | boolean>;
 
+/** Keeps only allow-listed primitive properties and adds the city slug. */
 export function sanitizeAnalyticsPayload<K extends AnalyticsEventName>(
   event: K,
   props: AnalyticsEventMap[K],
-  citySlug = 'kota',
-): Record<string, string | number | boolean> {
-  const allowedKeys = ALLOWED_KEYS_BY_EVENT[event] as readonly string[];
-  const sanitized: Record<string, string | number | boolean> = {
-    city: citySlug,
-  };
-
-  for (const key of allowedKeys) {
-    if (FORBIDDEN_PII_KEY_PATTERN.test(key)) {
-      continue;
-    }
-    const val = (props as Record<string, unknown>)[key];
-    if (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean') {
-      sanitized[key] = val;
+  citySlug: string,
+): SafeProps {
+  const out: SafeProps = { city: citySlug };
+  for (const key of ALLOWED_KEYS[event] as readonly string[]) {
+    const value = (props as Record<string, unknown>)[key];
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+      out[key] = value;
     }
   }
-
-  return sanitized;
+  return out;
 }
 
-/**
- * S-9: Sentry `beforeSend` scrubber.
- * Strips request bodies, query strings, text-input breadcrumbs, and any PII fields.
- * Ensures `user` context contains ONLY `{ id }`.
- */
-export function scrubSentryEvent<T extends Record<string, any>>(event: T): T {
-  const cloned = structuredClone(event);
+const PII_KEY = /phone|mobile|msisdn|name|bio|body|message|text|lat|lng|latitude|longitude|aadhaar|dob|birth|email|photo|avatar|token|address|location/i;
 
-  if (cloned.user) {
-    cloned.user = cloned.user.id ? { id: String(cloned.user.id) } : undefined;
+function stripPii(value: unknown, depth = 0): unknown {
+  if (depth > 6 || value === null || typeof value !== 'object') return value;
+  if (Array.isArray(value)) return value.map((v) => stripPii(v, depth + 1));
+  const out: Record<string, unknown> = {};
+  for (const [key, v] of Object.entries(value)) {
+    if (!PII_KEY.test(key)) out[key] = stripPii(v, depth + 1);
   }
+  return out;
+}
 
-  if (cloned.request) {
-    delete cloned.request.data;
-    delete cloned.request.query_string;
-    delete cloned.request.cookies;
-    delete cloned.request.headers;
+/** S-9: Sentry beforeSend. User context is reduced to `{ id }`; bodies, inputs and PII keys go. */
+export function scrubSentryEvent<T extends object>(event: T): T {
+  const e = event as Record<string, unknown> & {
+    user?: { id?: string | number };
+    request?: { url?: string };
+    breadcrumbs?: { category?: string; data?: unknown }[];
+  };
+  const scrubbed: Record<string, unknown> = { ...e };
+  scrubbed.user = e.user?.id ? { id: String(e.user.id) } : undefined;
+  if (e.request) scrubbed.request = e.request.url ? { url: e.request.url.split('?')[0] } : {};
+  if (e.breadcrumbs) {
+    scrubbed.breadcrumbs = e.breadcrumbs
+      .filter((b) => b.category !== 'ui.input' && b.category !== 'console')
+      .map((b) => ({ ...b, data: stripPii(b.data) }));
   }
-
-  if (Array.isArray(cloned.breadcrumbs)) {
-    cloned.breadcrumbs = cloned.breadcrumbs
-      .filter((b: Record<string, any>) => b?.category !== 'ui.input')
-      .map((b: Record<string, any>) => {
-        if (b?.data && typeof b.data === 'object') {
-          const cleanData: Record<string, unknown> = {};
-          for (const [k, v] of Object.entries(b.data)) {
-            if (!FORBIDDEN_PII_KEY_PATTERN.test(k)) {
-              cleanData[k] = v;
-            }
-          }
-          return { ...b, data: cleanData };
-        }
-        return b;
-      });
-  }
-
-  if (cloned.extra && typeof cloned.extra === 'object') {
-    for (const key of Object.keys(cloned.extra)) {
-      if (FORBIDDEN_PII_KEY_PATTERN.test(key)) {
-        delete cloned.extra[key];
-      }
-    }
-  }
-
-  return cloned;
+  if (e.extra) scrubbed.extra = stripPii(e.extra);
+  if (e.contexts) scrubbed.contexts = stripPii(e.contexts);
+  return scrubbed as T;
 }

@@ -81,6 +81,16 @@ as $$
   returning units;
 $$;
 
+-- S-53: records a webhook event id; raises on a duplicate so the caller drops the replay.
+create function public.svc_webhook_seen(p_provider text, p_event_id text)
+returns void
+language sql
+security definer
+set search_path = ''
+as $$
+  insert into private.webhook_events (provider, event_id) values (p_provider, p_event_id);
+$$;
+
 -- -----------------------------------------------------------------------------
 -- Verification (VR-1 to VR-3, S-38 to S-41)
 -- -----------------------------------------------------------------------------
@@ -136,7 +146,8 @@ begin
     return jsonb_build_object('action', 'denied', 'message', 'Add an approved profile photo first.');
   end if;
 
-  return jsonb_build_object('action', 'start', 'attempt', v_attempts + 1, 'photo_path', v_photo);
+  return jsonb_build_object('action', 'start', 'attempt', v_attempts + 1, 'photo_path', v_photo,
+    'declared_gender', v_profile.declared_gender);
 end;
 $$;
 
@@ -278,15 +289,15 @@ $$;
 -- -----------------------------------------------------------------------------
 -- Media moderation (S-21 to S-24)
 -- -----------------------------------------------------------------------------
-create function public.svc_media_cache(p_sha256 text)
-returns jsonb
+-- True when this exact image was already moderated (S-21 cache: never billed twice).
+create function public.svc_media_cached(p_sha256 text)
+returns boolean
 language sql
 stable
 security definer
 set search_path = ''
 as $$
-  select jsonb_build_object('verdict', m.verdict, 'labels', m.labels)
-  from private.media_moderation m where m.sha256 = p_sha256;
+  select exists (select 1 from private.media_moderation m where m.sha256 = p_sha256);
 $$;
 
 -- Registers an upload before moderation. kind: profile | chat.
@@ -335,10 +346,18 @@ begin
 end;
 $$;
 
--- verdict: pass -> approved; review -> queue; fail -> rejected and queued for audit.
+-- Decides the verdict from Rekognition output using thresholds in private.settings and
+-- applies it. A failed provider call is never treated as a pass (fail closed).
+-- verdict: pass -> approved; review -> pending + queue; fail -> rejected + queue for audit.
 create function public.svc_apply_media(
-  p_kind text, p_id uuid, p_verdict public.verdict, p_labels jsonb,
-  p_score numeric, p_sha256 text, p_media_path text
+  p_kind text,
+  p_id uuid,
+  p_sha256 text,
+  p_media_path text,
+  p_labels jsonb,
+  p_top_confidence numeric,
+  p_faces int,
+  p_provider_error boolean
 )
 returns public.media_status
 language plpgsql
@@ -346,18 +365,34 @@ security definer
 set search_path = ''
 as $$
 declare
-  v_status public.media_status := case p_verdict when 'pass' then 'approved' when 'fail' then 'rejected' else 'pending' end;
+  v_cached public.verdict;
+  v_verdict public.verdict;
+  v_labels jsonb := coalesce(p_labels, '[]'::jsonb);
+  v_status public.media_status;
   v_user uuid;
 begin
-  if p_sha256 is not null then
-    insert into private.media_moderation (sha256, verdict, labels) values (p_sha256, p_verdict, coalesce(p_labels, '[]'))
+  select m.verdict into v_cached from private.media_moderation m where m.sha256 = p_sha256;
+  v_verdict := case
+    when v_cached is not null then v_cached
+    when p_provider_error then 'review'
+    when coalesce(p_top_confidence, 0) >= private.setting('rekognition_reject')::numeric then 'fail'
+    when coalesce(p_top_confidence, 0) >= private.setting('rekognition_review')::numeric then 'review'
+    when p_kind = 'profile' and coalesce(p_faces, 0) = 0 then 'review'
+    else 'pass'
+  end;
+  if p_kind = 'profile' and v_cached is null and not p_provider_error and coalesce(p_faces, 0) = 0 then
+    v_labels := v_labels || '["no_face"]'::jsonb;
+  end if;
+  if v_cached is null and not p_provider_error then
+    insert into private.media_moderation (sha256, verdict, labels) values (p_sha256, v_verdict, v_labels)
     on conflict (sha256) do nothing;
   end if;
 
+  v_status := case v_verdict when 'pass' then 'approved' when 'fail' then 'rejected' else 'pending' end;
   if p_kind = 'profile' then
     update public.profile_photos
     set status = v_status, path = p_media_path, sha256 = p_sha256,
-        reject_reason = case when v_status = 'rejected' then coalesce(p_labels ->> 0, 'Not approved') end
+        reject_reason = case when v_status = 'rejected' then 'This photo breaks the photo rules.' end
     where id = p_id
     returning user_id into v_user;
   else
@@ -367,10 +402,13 @@ begin
     where id = p_id
     returning sender_id into v_user;
   end if;
+  if v_user is null then
+    raise exception 'Upload not found';
+  end if;
 
-  if p_verdict <> 'pass' then
+  if v_verdict <> 'pass' then
     insert into public.moderation_queue (subject, subject_id, user_id, ai_verdict, ai_score, ai_labels, due_at)
-    values ('photo', p_id, v_user, p_verdict, p_score, coalesce(p_labels, '[]'), now() + interval '24 hours');
+    values ('photo', p_id, v_user, v_verdict, p_top_confidence, v_labels, now() + interval '24 hours');
   end if;
   return v_status;
 end;
@@ -527,10 +565,10 @@ $$;
 
 revoke execute on function
   public.svc_otp_locked_until(text), public.svc_otp_record(text, boolean),
-  public.svc_rate_hit(uuid, text, int, int), public.svc_vendor_usage(text, int),
+  public.svc_rate_hit(uuid, text, int, int), public.svc_vendor_usage(text, int), public.svc_webhook_seen(text, text),
   public.svc_kyc_prepare(uuid), public.svc_kyc_register(uuid, text, int), public.svc_kyc_apply(jsonb),
-  public.svc_media_cache(text), public.svc_register_upload(uuid, text, text, int, uuid, uuid),
-  public.svc_apply_media(text, uuid, public.verdict, jsonb, numeric, text, text),
+  public.svc_media_cached(text), public.svc_register_upload(uuid, text, text, int, uuid, uuid),
+  public.svc_apply_media(text, uuid, text, text, jsonb, numeric, int, boolean),
   public.svc_check_in_context(uuid, uuid), public.svc_mark_checked_in(uuid, uuid),
   public.svc_push_tokens(uuid[]), public.svc_drop_push_tokens(text[]),
   public.svc_export_user(uuid), public.svc_record_export(uuid, text), public.svc_request_deletion(uuid)
@@ -538,10 +576,10 @@ from public, anon, authenticated;
 
 grant execute on function
   public.svc_otp_locked_until(text), public.svc_otp_record(text, boolean),
-  public.svc_rate_hit(uuid, text, int, int), public.svc_vendor_usage(text, int),
+  public.svc_rate_hit(uuid, text, int, int), public.svc_vendor_usage(text, int), public.svc_webhook_seen(text, text),
   public.svc_kyc_prepare(uuid), public.svc_kyc_register(uuid, text, int), public.svc_kyc_apply(jsonb),
-  public.svc_media_cache(text), public.svc_register_upload(uuid, text, text, int, uuid, uuid),
-  public.svc_apply_media(text, uuid, public.verdict, jsonb, numeric, text, text),
+  public.svc_media_cached(text), public.svc_register_upload(uuid, text, text, int, uuid, uuid),
+  public.svc_apply_media(text, uuid, text, text, jsonb, numeric, int, boolean),
   public.svc_check_in_context(uuid, uuid), public.svc_mark_checked_in(uuid, uuid),
   public.svc_push_tokens(uuid[]), public.svc_drop_push_tokens(text[]),
   public.svc_export_user(uuid), public.svc_record_export(uuid, text), public.svc_request_deletion(uuid)

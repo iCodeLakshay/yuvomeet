@@ -1,65 +1,45 @@
-// Edge Function: send-sms (Supabase Auth Send SMS Hook -> MSG91 DLT in India, S-7, S-10, S-11)
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+// Supabase Auth "Send SMS" hook -> MSG91 (S-7, S-10, S-11). The phone number is used only to
+// deliver the code and to derive the HMAC lock key; it is never stored or logged.
+import { Webhook } from 'npm:standardwebhooks@1.0.0';
+import { hmacSha256Hex, requireSecret } from '../_shared/crypto.ts';
+import { isLocal, json, serve } from '../_shared/http.ts';
+import * as msg91 from '../_shared/msg91.ts';
+import { admin } from '../_shared/supabase.ts';
 
-async function hmacPhone(phone: string, pepper: string): Promise<string> {
-  const enc = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    'raw',
-    enc.encode(pepper),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign'],
-  );
-  const sig = await crypto.subtle.sign('HMAC', key, enc.encode(phone.trim()));
-  return Array.from(new Uint8Array(sig))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
+interface HookPayload {
+  user: { phone?: string };
+  sms: { otp?: string };
 }
 
-Deno.serve(async (req: Request) => {
-  if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 });
+const hookError = (status: number, message: string) => json({ error: { http_code: status, message } }, status);
+
+serve(async (req) => {
+  const raw = await req.text();
+  let payload: HookPayload;
+  try {
+    const secret = requireSecret('SEND_SMS_HOOK_SECRET').replace(/^v1,whsec_/, '');
+    payload = new Webhook(secret).verify(raw, Object.fromEntries(req.headers)) as HookPayload;
+  } catch {
+    return hookError(401, 'Invalid hook signature');
   }
 
-  const body = await req.json();
-  const phone = body?.user?.phone;
-  const otp = body?.sms?.otp;
+  const phone = payload.user?.phone ? `+${payload.user.phone.replace(/^\+/, '')}` : null;
+  const otp = payload.sms?.otp;
+  if (!phone || !otp) return hookError(400, 'Missing phone or code');
 
-  if (!phone || !otp) {
-    return new Response(JSON.stringify({ error: 'Missing phone or otp' }), { status: 400 });
+  const phoneHmac = await hmacSha256Hex(requireSecret('OTP_PEPPER'), phone);
+  const { data: lockedUntil } = await admin.rpc('svc_otp_locked_until', { p_phone_hmac: phoneHmac });
+  if (lockedUntil) return hookError(429, 'Too many wrong codes. Try again in 30 minutes.');
+
+  if (msg91.isConfigured()) {
+    try {
+      await msg91.sendOtp(phone, otp);
+    } catch {
+      return hookError(502, "Couldn't send code, try again");
+    }
+    await admin.rpc('svc_vendor_usage', { p_vendor: 'msg91', p_units: 1 });
+  } else if (!isLocal()) {
+    return hookError(500, 'SMS is not configured');
   }
-
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-  const pepper = Deno.env.get('OTP_PEPPER') ?? 'dev-pepper';
-
-  const admin = createClient(supabaseUrl, serviceKey);
-  const identifierHmac = await hmacPhone(String(phone), pepper);
-
-  // S-10: Refuse to send SMS while number is locked
-  const { data: attempt } = await admin
-    .schema('private')
-    .from('otp_attempts')
-    .select('locked_until')
-    .eq('identifier_hmac', identifierHmac)
-    .maybeSingle();
-
-  if (attempt?.locked_until && new Date(attempt.locked_until).getTime() > Date.now()) {
-    return new Response(
-      JSON.stringify({ error: 'OTP_LOCKED', lockedUntil: attempt.locked_until }),
-      { status: 429 },
-    );
-  }
-
-  // Record cost-guard unit in private.vendor_usage
-  const today = new Date().toISOString().slice(0, 10);
-  await admin.schema('private').from('vendor_usage').upsert(
-    { vendor: 'msg91', day: today, units: 1 },
-    { onConflict: 'vendor,day' },
-  );
-
-  return new Response(JSON.stringify({ ok: true }), {
-    status: 200,
-    headers: { 'Content-Type': 'application/json' },
-  });
+  return json({});
 });

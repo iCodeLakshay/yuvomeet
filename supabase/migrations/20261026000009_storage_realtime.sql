@@ -1,8 +1,9 @@
 -- Storage buckets and policies (S-21, S-22, S-24) and Realtime publication.
 -- All buckets are private; images are served through 60-second signed URLs.
+-- The app re-encodes every upload to JPEG; moderate-image re-encodes again to strip EXIF (S-24).
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types) values
-  ('quarantine', 'quarantine', false, 8388608, array['image/jpeg', 'image/png', 'image/webp']),
+  ('quarantine', 'quarantine', false, 8388608, array['image/jpeg']),
   ('media', 'media', false, 8388608, array['image/jpeg']),
   ('exports', 'exports', false, 8388608, array['application/json'])
 on conflict (id) do update

@@ -1,102 +1,39 @@
-// Edge Function: otp-verify (Enforces ON-1 & S-8, S-10: 5 failed tries locks for 30 min, keyed by HMAC-SHA256)
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+// ON-1, S-8, S-10: five wrong codes lock the number for 30 minutes, keyed by HMAC(phone).
+// The number arrives from the app transiently and is never logged or stored.
+import { isOtpCode, toE164India } from '../../../packages/shared/src/validation.ts';
+import { hmacSha256Hex, requireSecret } from '../_shared/crypto.ts';
+import { HttpError, json, readJson, serve } from '../_shared/http.ts';
+import { admin, anon } from '../_shared/supabase.ts';
 
-async function hmacPhone(phone: string, pepper: string): Promise<string> {
-  const enc = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    'raw',
-    enc.encode(pepper),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign'],
-  );
-  const sig = await crypto.subtle.sign('HMAC', key, enc.encode(phone.trim()));
-  return Array.from(new Uint8Array(sig))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
-}
+serve(async (req) => {
+  const body = await readJson<{ phone?: string; token?: string }>(req);
+  const phone = toE164India(body.phone ?? '');
+  const token = body.token ?? '';
+  if (!phone || !isOtpCode(token)) throw new HttpError(400, 'BAD_REQUEST', 'Enter the 6-digit code.');
 
-Deno.serve(async (req: Request) => {
-  if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 });
+  const phoneHmac = await hmacSha256Hex(requireSecret('OTP_PEPPER'), phone);
+  const { data: lockedUntil } = await admin.rpc('svc_otp_locked_until', { p_phone_hmac: phoneHmac });
+  if (lockedUntil) {
+    return json({ error: { code: 'OTP_LOCKED', message: 'Too many wrong codes.', locked_until: lockedUntil } }, 429);
   }
 
-  const { phone, token } = await req.json();
-  if (!phone || !token || !/^\d{6}$/.test(String(token))) {
-    return new Response(JSON.stringify({ error: 'Invalid input' }), { status: 400 });
-  }
-
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-  const pepper = Deno.env.get('OTP_PEPPER') ?? 'dev-pepper';
-
-  const admin = createClient(supabaseUrl, serviceKey);
-  const identifierHmac = await hmacPhone(String(phone), pepper);
-
-  const { data: attempt } = await admin
-    .schema('private')
-    .from('otp_attempts')
-    .select('*')
-    .eq('identifier_hmac', identifierHmac)
-    .maybeSingle();
-
-  if (attempt?.locked_until && new Date(attempt.locked_until).getTime() > Date.now()) {
-    return new Response(
-      JSON.stringify({
-        error: 'OTP_LOCKED',
-        lockedUntil: attempt.locked_until,
-        message: 'Too many incorrect attempts. Locked for 30 minutes.',
-      }),
-      { status: 429 },
-    );
-  }
-
-  const { data, error } = await admin.auth.verifyOtp({
-    phone: String(phone),
-    token: String(token),
-    type: 'sms',
+  const { data, error } = await anon.auth.verifyOtp({ phone, token, type: 'sms' });
+  const { data: state, error: recordError } = await admin.rpc('svc_otp_record', {
+    p_phone_hmac: phoneHmac,
+    p_success: !error && Boolean(data.session),
   });
+  if (recordError) throw recordError;
 
   if (error || !data.session) {
-    const nextFailed = (attempt?.failed_count ?? 0) + 1;
-    const lockedUntil =
-      nextFailed >= 5 ? new Date(Date.now() + 30 * 60 * 1000).toISOString() : null;
-
-    await admin
-      .schema('private')
-      .from('otp_attempts')
-      .upsert({
-        identifier_hmac: identifierHmac,
-        failed_count: nextFailed,
-        locked_until: lockedUntil,
-        updated_at: new Date().toISOString(),
-      });
-
-    return new Response(
-      JSON.stringify({
-        error: nextFailed >= 5 ? 'OTP_LOCKED' : 'INVALID_OTP',
-        remainingAttempts: Math.max(0, 5 - nextFailed),
-        lockedUntil,
-      }),
-      { status: nextFailed >= 5 ? 429 : 401 },
-    );
+    const { remaining, locked_until } = state as { remaining: number; locked_until: string | null };
+    return locked_until
+      ? json({ error: { code: 'OTP_LOCKED', message: 'Too many wrong codes.', locked_until } }, 429)
+      : json({ error: { code: 'INVALID_OTP', message: 'That code is not right.', remaining } }, 401);
   }
 
-  await admin
-    .schema('private')
-    .from('otp_attempts')
-    .upsert({
-      identifier_hmac: identifierHmac,
-      failed_count: 0,
-      locked_until: null,
-      updated_at: new Date().toISOString(),
-    });
-
-  return new Response(
-    JSON.stringify({
-      session: data.session,
-      user: { id: data.user?.id },
-    }),
-    { status: 200, headers: { 'Content-Type': 'application/json' } },
-  );
+  const createdAt = Date.parse(data.user?.created_at ?? '');
+  return json({
+    session: { access_token: data.session.access_token, refresh_token: data.session.refresh_token },
+    new_user: Number.isFinite(createdAt) && Date.now() - createdAt < 5 * 60_000,
+  });
 });

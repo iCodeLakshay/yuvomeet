@@ -1,44 +1,21 @@
-// Edge Function: export-data (ON-6, Privacy §4)
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+// ON-6, privacy §4: builds a JSON export in the private exports bucket and returns a
+// short-lived signed link the app downloads and shares as a file.
+import { json, serve } from '../_shared/http.ts';
+import { admin, rateLimit, requireUser, unwrap } from '../_shared/supabase.ts';
 
-Deno.serve(async (req: Request) => {
-  if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 });
-  }
+serve(async (req) => {
+  const userId = await requireUser(req);
+  await rateLimit(userId, 'export-data', 86_400, 3);
 
-  const authHeader = req.headers.get('Authorization') ?? '';
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+  const bundle = unwrap(await admin.rpc('svc_export_user', { p_user: userId }));
+  const path = `${userId}/yuvomeet-export-${Date.now()}.json`;
+  const { error } = await admin.storage
+    .from('exports')
+    .upload(path, new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' }));
+  if (error) throw error;
+  unwrap(await admin.rpc('svc_record_export', { p_user: userId, p_path: path }));
 
-  const userClient = createClient(supabaseUrl, anonKey, {
-    global: { headers: { Authorization: authHeader } },
-  });
-  const {
-    data: { user },
-  } = await userClient.auth.getUser();
-
-  if (!user) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
-  }
-
-  const [profileRes, consentsRes, membershipsRes, checksRes] = await Promise.all([
-    userClient.from('profiles').select('*').eq('id', user.id).single(),
-    userClient.from('consents').select('*').eq('user_id', user.id),
-    userClient.from('plan_members').select('*').eq('user_id', user.id),
-    userClient.from('verification_checks').select('type, verdict, decided_at').eq('user_id', user.id),
-  ]);
-
-  const exportBundle = {
-    exportedAt: new Date().toISOString(),
-    userId: user.id,
-    profile: profileRes.data,
-    consents: consentsRes.data ?? [],
-    planMemberships: membershipsRes.data ?? [],
-    verificationChecks: checksRes.data ?? [],
-  };
-
-  return new Response(JSON.stringify(exportBundle, null, 2), {
-    status: 200,
-    headers: { 'Content-Type': 'application/json' },
-  });
+  const { data, error: signError } = await admin.storage.from('exports').createSignedUrl(path, 600);
+  if (signError) throw signError;
+  return json({ url: data.signedUrl, file_name: path.split('/')[1] });
 });

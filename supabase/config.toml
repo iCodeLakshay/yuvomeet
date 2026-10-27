@@ -32,7 +32,7 @@ file_size_limit = "8MiB"
 [storage.buckets.quarantine]
 public = false
 file_size_limit = "8MiB"
-allowed_mime_types = ["image/jpeg", "image/png", "image/webp"]
+allowed_mime_types = ["image/jpeg"]
 
 [storage.buckets.media]
 public = false
@@ -55,6 +55,8 @@ enable_signup = true
 
 [auth.rate_limit]
 sms_sent = 30
+# Per IP per 5 minutes. Backs up the otp-verify lockout (S-10) for direct API callers.
+token_verifications = 10
 
 [auth.email]
 # Admins only: accounts are invited, never self-registered.

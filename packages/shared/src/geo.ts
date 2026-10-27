@@ -1,39 +1,34 @@
 /**
- * S-36, PL-6: Haversine distance & check-in verification rules.
- * Coordinates are verified in memory and NEVER persisted.
+ * PL-6, S-36, S-37: check-in rules. Used by the check-in Edge Function; the
+ * coordinate is evaluated in memory and never stored or logged.
  */
 
-import {
-  CHECKIN_MAX_ACCURACY_M,
-  CHECKIN_RADIUS_M,
-  CHECKIN_WINDOW_MIN,
-} from './constants.ts';
+import { CHECKIN_MAX_ACCURACY_M, CHECKIN_RADIUS_M, CHECKIN_WINDOW_MIN } from './constants.ts';
 
 const EARTH_RADIUS_M = 6371000;
+const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
 
-function toRadians(degrees: number): number {
-  return (degrees * Math.PI) / 180;
-}
-
-export function haversineDistanceMeters(
-  lat1: number,
-  lng1: number,
-  lat2: number,
-  lng2: number,
-): number {
+export function haversineDistanceMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const dLat = toRadians(lat2 - lat1);
   const dLng = toRadians(lng2 - lng1);
   const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRadians(lat1)) *
-      Math.cos(toRadians(lat2)) *
-      Math.sin(dLng / 2) *
-      Math.sin(dLng / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return Math.round(EARTH_RADIUS_M * c);
+    Math.sin(dLat / 2) ** 2 + Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) * Math.sin(dLng / 2) ** 2;
+  return Math.round(EARTH_RADIUS_M * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 }
 
-export interface CheckInEvaluationInput {
+export interface CheckInRules {
+  radiusM: number;
+  windowMin: number;
+  maxAccuracyM: number;
+}
+
+export const DEFAULT_CHECKIN_RULES: CheckInRules = {
+  radiusM: CHECKIN_RADIUS_M,
+  windowMin: CHECKIN_WINDOW_MIN,
+  maxAccuracyM: CHECKIN_MAX_ACCURACY_M,
+};
+
+export interface CheckInInput {
   userLat: number;
   userLng: number;
   accuracyMeters: number;
@@ -41,80 +36,23 @@ export interface CheckInEvaluationInput {
   venueLat: number;
   venueLng: number;
   planStartsAtIso: string;
-  nowIso?: string;
+  nowMs?: number;
 }
 
-export type CheckInEvaluationResult =
-  | {
-      allowed: true;
-      distanceMeters: number;
-      minutesFromStart: number;
-    }
-  | {
-      allowed: false;
-      code:
-        | 'MOCK_LOCATION_DETECTED'
-        | 'LOW_GPS_ACCURACY'
-        | 'OUTSIDE_TIME_WINDOW'
-        | 'TOO_FAR_FROM_VENUE';
-      distanceMeters: number;
-      minutesFromStart: number;
-    };
+export type CheckInCode = 'MOCK_LOCATION' | 'LOW_ACCURACY' | 'OUTSIDE_WINDOW' | 'TOO_FAR';
 
-export function evaluateCheckIn(input: CheckInEvaluationInput): CheckInEvaluationResult {
-  const nowMs = input.nowIso ? new Date(input.nowIso).getTime() : Date.now();
-  const startMs = new Date(input.planStartsAtIso).getTime();
-  const minutesFromStart = Math.round((nowMs - startMs) / 60000);
-  const distanceMeters = haversineDistanceMeters(
-    input.userLat,
-    input.userLng,
-    input.venueLat,
-    input.venueLng,
-  );
+export type CheckInResult =
+  | { allowed: true; distanceMeters: number; minutesFromStart: number }
+  | { allowed: false; code: CheckInCode; distanceMeters: number; minutesFromStart: number };
 
-  // S-37: Reject Android mock location
-  if (input.mocked) {
-    return {
-      allowed: false,
-      code: 'MOCK_LOCATION_DETECTED',
-      distanceMeters,
-      minutesFromStart,
-    };
-  }
+export function evaluateCheckIn(input: CheckInInput, rules: CheckInRules = DEFAULT_CHECKIN_RULES): CheckInResult {
+  const minutesFromStart = Math.round(((input.nowMs ?? Date.now()) - Date.parse(input.planStartsAtIso)) / 60000);
+  const distanceMeters = haversineDistanceMeters(input.userLat, input.userLng, input.venueLat, input.venueLng);
+  const base = { distanceMeters, minutesFromStart };
 
-  // S-36: Accuracy must be <= 100 m
-  if (input.accuracyMeters > CHECKIN_MAX_ACCURACY_M) {
-    return {
-      allowed: false,
-      code: 'LOW_GPS_ACCURACY',
-      distanceMeters,
-      minutesFromStart,
-    };
-  }
-
-  // S-36: Within 30 minutes either side of starts_at
-  if (Math.abs(minutesFromStart) > CHECKIN_WINDOW_MIN) {
-    return {
-      allowed: false,
-      code: 'OUTSIDE_TIME_WINDOW',
-      distanceMeters,
-      minutesFromStart,
-    };
-  }
-
-  // S-36: Distance to venue pin <= 150 m
-  if (distanceMeters > CHECKIN_RADIUS_M) {
-    return {
-      allowed: false,
-      code: 'TOO_FAR_FROM_VENUE',
-      distanceMeters,
-      minutesFromStart,
-    };
-  }
-
-  return {
-    allowed: true,
-    distanceMeters,
-    minutesFromStart,
-  };
+  if (input.mocked) return { allowed: false, code: 'MOCK_LOCATION', ...base };
+  if (!(input.accuracyMeters <= rules.maxAccuracyM)) return { allowed: false, code: 'LOW_ACCURACY', ...base };
+  if (Math.abs(minutesFromStart) > rules.windowMin) return { allowed: false, code: 'OUTSIDE_WINDOW', ...base };
+  if (distanceMeters > rules.radiusM) return { allowed: false, code: 'TOO_FAR', ...base };
+  return { allowed: true, ...base };
 }

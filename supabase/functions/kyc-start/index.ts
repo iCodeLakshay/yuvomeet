@@ -1,58 +1,52 @@
-// Edge Function: kyc-start (VR-1, VR-2, S-38, Cost guard circuit breaker)
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+// VR-1 to VR-3, S-38: starts a paid HyperVerge check, or routes to manual review after the
+// retry limit (VR-2). Local development without credentials applies a passing stub result.
+import * as hyperverge from '../_shared/hyperverge.ts';
+import { HttpError, isLocal, json, serve } from '../_shared/http.ts';
+import { admin, rateLimit, requireUser, unwrap } from '../_shared/supabase.ts';
 
-Deno.serve(async (req: Request) => {
-  if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 });
+interface Prepared {
+  action: 'start' | 'already_verified' | 'manual_review' | 'blocked_minor' | 'busy' | 'denied';
+  attempt?: number;
+  photo_path?: string;
+  declared_gender?: 'woman' | 'man' | 'other';
+  message?: string;
+}
+
+serve(async (req) => {
+  const userId = await requireUser(req);
+  await rateLimit(userId, 'kyc-start', 86_400, 5);
+
+  const prepared = unwrap(await admin.rpc('svc_kyc_prepare', { p_user: userId })) as unknown as Prepared;
+  if (prepared.action === 'denied' || prepared.action === 'busy') {
+    throw new HttpError(409, prepared.action.toUpperCase(), prepared.message ?? 'Verification is unavailable.');
+  }
+  if (prepared.action !== 'start') return json({ status: prepared.action });
+
+  const transactionId = crypto.randomUUID();
+  unwrap(await admin.rpc('svc_kyc_register', { p_user: userId, p_transaction_id: transactionId, p_attempt: prepared.attempt! }));
+
+  if (!hyperverge.isConfigured()) {
+    if (!isLocal()) throw new Error('HyperVerge is not configured');
+    const result = unwrap(await admin.rpc('svc_kyc_apply', {
+      p_result: {
+        transaction_id: transactionId,
+        fingerprint: `local-${userId}`,
+        birth_year: 2000,
+        gender: prepared.declared_gender ?? 'other',
+        face_score: 95,
+        liveness_score: 95,
+        id_readable: true,
+      },
+    })) as { outcome: string };
+    return json({ status: result.outcome, attempt: prepared.attempt });
   }
 
-  const authHeader = req.headers.get('Authorization') ?? '';
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-
-  const userClient = createClient(supabaseUrl, anonKey, {
-    global: { headers: { Authorization: authHeader } },
+  const { data: signed, error } = await admin.storage.from('media').createSignedUrl(prepared.photo_path!, 60);
+  if (error) throw error;
+  const url = await hyperverge.startSession({
+    transactionId,
+    faceImageUrl: signed.signedUrl,
+    redirectUrl: Deno.env.get('KYC_REDIRECT_URL') ?? 'yuvomeet://verify/result',
   });
-  const {
-    data: { user },
-  } = await userClient.auth.getUser();
-
-  if (!user) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
-  }
-
-  const admin = createClient(supabaseUrl, serviceKey);
-
-  // VR-2: Refuse 3rd liveness_face attempt and route to manual review
-  const { count: priorAttempts } = await admin
-    .from('verification_checks')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-    .eq('type', 'liveness_face');
-
-  const attempt = (priorAttempts ?? 0) + 1;
-  if (attempt > 2) {
-    await admin
-      .from('profiles')
-      .update({ verification_status: 'manual_review', updated_at: new Date().toISOString() })
-      .eq('id', user.id);
-
-    return new Response(
-      JSON.stringify({
-        status: 'manual_review',
-        message: "We're checking your photos by hand. Expect a reply within 24 hours.",
-      }),
-      { status: 200 },
-    );
-  }
-
-  return new Response(
-    JSON.stringify({
-      sessionId: `hv_${user.id}_${attempt}_${Date.now()}`,
-      attempt,
-      provider: 'hyperverge',
-    }),
-    { status: 200, headers: { 'Content-Type': 'application/json' } },
-  );
+  return json({ status: 'started', url, attempt: prepared.attempt });
 });
