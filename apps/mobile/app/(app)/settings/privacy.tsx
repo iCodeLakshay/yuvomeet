@@ -28,9 +28,13 @@ export default function Privacy() {
       </View>
 
       <SectionHeader title="Your data" small />
-      <Button label="Download my data" icon="download" variant="secondary" loading={exportData.isPending} onPress={() => exportData.mutate()} />
-      {exportData.error ? <Notice tone="danger" text={errorMessage(exportData.error)} /> : null}
-      <Notice text="You get a JSON file with your profile, plans, messages and consents. The download link works for 24 hours." />
+      <View style={styles.section}>
+        <Notice text="You get a JSON file with your profile, plans, messages and consents. The download link works for 24 hours." icon="description" />
+        <Button label="Download my data" icon="download" variant="secondary" loading={exportData.isPending} onPress={() => exportData.mutate()} />
+        {exportData.error ? <Notice tone="danger" text={errorMessage(exportData.error)} /> : null}
+      </View>
+
+      <SectionHeader title="Account" small />
       <ListRow icon="delete-forever" title="Delete account" destructive onPress={() => router.push('/delete-account')} />
     </Screen>
   );
@@ -39,4 +43,5 @@ export default function Privacy() {
 const styles = StyleSheet.create({
   intro: { marginTop: space.md },
   list: { gap: space.md, marginTop: space.lg },
+  section: { gap: space.md },
 });

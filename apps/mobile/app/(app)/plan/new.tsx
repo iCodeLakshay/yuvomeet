@@ -1,15 +1,26 @@
-import { checkPlanTiming, checkText, MAX_PLAN_CAPACITY, MIN_PLAN_CAPACITY } from '@yuvomeet/shared';
+import {
+  checkPlanTiming,
+  checkText,
+  formatRupees,
+  MAX_PLAN_CAPACITY,
+  MIN_PLAN_CAPACITY,
+  PLAN_PRICE_MAX_RUPEES,
+  PLAN_PRICE_MIN_RUPEES,
+  PLATFORM_FEE_BPS,
+  splitSeat,
+} from '@yuvomeet/shared';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
-import { useCaps, useCreatePlan, useVenues, venueCover, type PlanAudience } from '../../../src/features/plans/api';
+import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { isPaid, useCaps, useCreatePlan, useUploadCover, useVenues, venueCover, type PlanAudience } from '../../../src/features/plans/api';
 import { PlanCover } from '../../../src/features/plans/PlanCover';
-import { atMinutes, dayOptions, minutesLabel, timeOptions } from '../../../src/features/plans/schedule';
+import { atMinutes, dayLabel, isStartAllowed, MAX_DAYS_AHEAD, minutesLabel, todayKey } from '../../../src/features/plans/schedule';
 import { pickedVenue } from '../../../src/features/plans/stores';
 import { useActivityMeta } from '../../../src/features/plans/usePlanMeta';
 import { useLookups } from '../../../src/features/profile/api';
 import { isVerified, useMe } from '../../../src/features/session/SessionProvider';
 import { errorMessage } from '../../../src/lib/errors';
+import { pickImage } from '../../../src/lib/media';
 import { formatRange } from '../../../src/lib/format';
 import {
   Badge,
@@ -17,6 +28,7 @@ import {
   Card,
   Chip,
   colors,
+  DatePicker,
   EmptyState,
   Field,
   gutter,
@@ -26,12 +38,14 @@ import {
   Pressable,
   radii,
   RadioRow,
+  RemoteImage,
   Screen,
   SectionHeader,
   space,
   Stepper,
   StepProgress,
   Text,
+  TimePicker,
   Toggle,
   type IconName,
 } from '../../../src/ui';
@@ -65,26 +79,32 @@ export default function CreatePlan() {
   const venueId = pickedVenue.use();
   const meta = useActivityMeta();
 
-  const days = useMemo(() => dayOptions(), []);
+  const minDay = useMemo(() => todayKey(), []);
+  const maxDay = minDay + MAX_DAYS_AHEAD * 86_400_000;
+  const uploadCover = useUploadCover();
   const [step, setStep] = useState<1 | 2>(1);
   const [activity, setActivity] = useState<string | null>(null);
   const [title, setTitle] = useState('');
-  const [dayKey, setDayKey] = useState(days[0]!.key);
-  const [start, setStart] = useState<number | null>(null);
+  const [dayKey, setDayKey] = useState(minDay);
+  const [pickedStart, setStart] = useState<number | null>(null);
   const [duration, setDuration] = useState<number>(120);
   const [open, setOpen] = useState<'date' | 'time' | null>(null);
   const [capacity, setCapacity] = useState(6);
   const [approval, setApproval] = useState(true);
   const [description, setDescription] = useState('');
   const [audience, setAudience] = useState<PlanAudience>('everyone');
+  const [cover, setCover] = useState<{ id: string; path: string; status: string } | null>(null);
+  const [coverError, setCoverError] = useState<string | null>(null);
+  const [paid, setPaid] = useState(false);
+  const [rupees, setRupees] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => () => pickedVenue.set(null), []);
   const venue = venues.data?.find((v) => v.id === venueId);
-  const times = useMemo(() => timeOptions(dayKey, Date.now(), venue?.late_events_allowed), [dayKey, venue?.late_events_allowed]);
-  useEffect(() => {
-    if (start != null && !times.includes(start)) setStart(null);
-  }, [times, start]);
+  const late = Boolean(venue?.late_events_allowed);
+  const allowed = (m: number) => isStartAllowed(dayKey, m, duration, Date.now(), late);
+  // A start that no longer fits (other day, longer duration, different venue) reads as unset.
+  const start = pickedStart != null && allowed(pickedStart) ? pickedStart : null;
 
   if (!isVerified(me)) {
     return (
@@ -94,10 +114,10 @@ export default function CreatePlan() {
     );
   }
 
-  const day = days.find((d) => d.key === dayKey)!;
+  const day = dayLabel(dayKey);
   const startsAt = start != null ? atMinutes(dayKey, start) : null;
   const endsAt = startsAt ? new Date(startsAt.getTime() + duration * 60_000) : null;
-  const outOfHosts = caps ? caps.hosts_used >= caps.hosts_limit : false;
+  const outOfHosts = caps ? !isPaid(caps) && caps.hosts_used >= caps.hosts_limit : false;
   const womanVerified = me.verified_gender === 'woman';
 
   const next = () => {
@@ -111,8 +131,16 @@ export default function CreatePlan() {
     if (!problem) setStep(2);
   };
 
+  const price = paid ? Number(rupees) : 0;
+  const pricePaise = paid && Number.isInteger(price) ? price * 100 : null;
+  const split = pricePaise ? splitSeat(pricePaise) : null;
+
   const publish = () => {
-    const problem = description.trim() ? checkText(description, 'Description', 0, 500) : null;
+    const problem =
+      (description.trim() ? checkText(description, 'Description', 0, 500) : null) ||
+      (paid && (!Number.isInteger(price) || price < PLAN_PRICE_MIN_RUPEES || price > PLAN_PRICE_MAX_RUPEES)
+        ? `Set a price between ₹${PLAN_PRICE_MIN_RUPEES} and ₹${PLAN_PRICE_MAX_RUPEES.toLocaleString('en-IN')}.`
+        : null);
     setError(problem);
     if (problem) return;
     create.mutate(
@@ -126,12 +154,34 @@ export default function CreatePlan() {
         capacity,
         audience,
         requiresApproval: approval,
+        coverId: cover?.id ?? null,
+        pricePaise,
       },
       {
         onSuccess: (id) => router.replace({ pathname: '/plan/[id]', params: { id } }),
-        onError: (e) => setError(errorMessage(e)),
+        onError: (e) => {
+          setError(errorMessage(e));
+          if ((e as { code?: string }).code === 'CAP_REACHED') router.push({ pathname: '/premium', params: { source: 'host_cap' } });
+        },
       },
     );
+  };
+
+  const chooseCover = async () => {
+    setCoverError(null);
+    try {
+      const uri = await pickImage('library', true);
+      if (!uri) return;
+      const res = await uploadCover.mutateAsync(uri);
+      if (res.status === 'rejected') {
+        setCover(null);
+        setCoverError("That photo wasn't approved. Try another one.");
+      } else {
+        setCover(res);
+      }
+    } catch (e) {
+      setCoverError(errorMessage(e));
+    }
   };
 
   const header = (
@@ -152,9 +202,43 @@ export default function CreatePlan() {
     const a = meta(activity);
     return (
       <Screen header={header} footer={<Button label="Publish Plan" trailingIcon="arrow-forward" loading={create.isPending} onPress={publish} />}>
+        <SectionHeader title="Plan banner" small meta="1:1 · optional" />
+        <View style={styles.bannerRow}>
+          <Pressable onPress={chooseCover} disabled={uploadCover.isPending} accessibilityLabel={cover ? 'Change banner' : 'Upload banner'} pressScale={0.97} style={styles.banner}>
+            {cover ? (
+              <RemoteImage path={cover.path} style={StyleSheet.absoluteFill} />
+            ) : (
+              <View style={styles.bannerEmpty}>
+                <Icon name="add-photo-alternate" size={30} color="textMuted" />
+              </View>
+            )}
+            {uploadCover.isPending ? (
+              <View style={styles.bannerBusy}>
+                <ActivityIndicator color={colors.text} />
+              </View>
+            ) : null}
+          </Pressable>
+          <View style={styles.flex}>
+            <Text variant="bodyStrong">{cover ? 'Banner added' : 'Add a square banner'}</Text>
+            <Text variant="caption" color="textSubtle">
+              {cover?.status === 'pending'
+                ? 'Shows to others once our quick check passes.'
+                : cover
+                  ? 'Tap the image to change it.'
+                  : 'Plans with a photo get more requests. The venue photo is used otherwise.'}
+            </Text>
+            {cover ? <Button label="Remove" variant="ghost" size="sm" fill={false} style={styles.remove} onPress={() => setCover(null)} /> : null}
+          </View>
+        </View>
+        {coverError ? (
+          <View style={styles.notes}>
+            <Notice tone="danger" text={coverError} />
+          </View>
+        ) : null}
+
         <SectionHeader title="Preview" small />
-        <Card style={styles.preview}>
-          <PlanCover path={venue ? venueCover(venue) : null} icon={a.icon} style={styles.previewCover}>
+        <Card>
+          <PlanCover path={cover?.path ?? (venue ? venueCover(venue) : null)} icon={a.icon} style={styles.previewCover}>
             <Badge label={a.label} tone="glass" icon={a.icon} />
           </PlanCover>
           <Text variant="title3">{title.trim()}</Text>
@@ -163,6 +247,9 @@ export default function CreatePlan() {
           </Text>
           <Text variant="small" color="textMuted">
             {venue!.name}, {venue!.area_name} · up to {capacity} people
+          </Text>
+          <Text variant="smallStrong" color={pricePaise ? 'accent' : 'success'}>
+            {pricePaise ? `${formatRupees(pricePaise)} per person` : 'Free'}
           </Text>
         </Card>
 
@@ -177,8 +264,58 @@ export default function CreatePlan() {
           counter
         />
 
+        <SectionHeader title="Entry" small />
+        <Card>
+          <Toggle
+            label="Paid plan"
+            description="Charge each member a fixed amount, for a turf, tickets or food included."
+            value={paid}
+            onChange={setPaid}
+          />
+          {paid ? (
+            <View style={styles.price}>
+              <Field
+                label="Price per person (₹)"
+                icon="currency-rupee"
+                placeholder="149"
+                value={rupees}
+                onChangeText={(t) => setRupees(t.replace(/\D/g, '').slice(0, 4))}
+                keyboardType="number-pad"
+                maxLength={4}
+              />
+              {split ? (
+                <View style={styles.split}>
+                  <View style={styles.splitRow}>
+                    <Text variant="small" color="textMuted">
+                      Member pays
+                    </Text>
+                    <Text variant="smallStrong">{formatRupees(pricePaise!)}</Text>
+                  </View>
+                  <View style={styles.splitRow}>
+                    <Text variant="small" color="textMuted">
+                      Platform fee ({PLATFORM_FEE_BPS / 100}%)
+                    </Text>
+                    <Text variant="small" color="textMuted">
+                      − {formatRupees(split.fee)}
+                    </Text>
+                  </View>
+                  <View style={styles.splitRow}>
+                    <Text variant="smallStrong">You receive</Text>
+                    <Text variant="smallStrong" color="success">
+                      {formatRupees(split.host)} per person
+                    </Text>
+                  </View>
+                </View>
+              ) : null}
+              <Text variant="caption" color="textSubtle">
+                Members pay through Razorpay after you approve them. Payouts go to your UPI ID after the plan; add it under Account → Earnings.
+              </Text>
+            </View>
+          ) : null}
+        </Card>
+
         <SectionHeader title="Who can join" small />
-        <View style={styles.list}>
+        <View style={styles.stack}>
           <RadioRow label="Everyone verified" icon="groups" selected={audience === 'everyone'} onPress={() => setAudience('everyone')} />
           {womanVerified ? (
             <RadioRow label="Women only (verified women)" icon="female" selected={audience === 'women_only'} onPress={() => setAudience('women_only')} />
@@ -187,14 +324,19 @@ export default function CreatePlan() {
             <RadioRow label="My college only" icon="school" selected={audience === 'same_college'} onPress={() => setAudience('same_college')} />
           ) : null}
         </View>
-        {caps ? (
-          <Notice
-            tone={outOfHosts ? 'warning' : 'info'}
-            icon="confirmation-number"
-            text={outOfHosts ? `You've hosted ${caps.hosts_limit} plan this week. It resets Monday 00:00 IST.` : `Publishing uses your weekly host slot (${caps.hosts_limit - caps.hosts_used} left).`}
-          />
-        ) : null}
-        {error ? <Notice tone="danger" text={error} /> : null}
+        <View style={styles.notes}>
+          {caps && !isPaid(caps) ? (
+            <Notice
+              tone={outOfHosts ? 'warning' : 'info'}
+              icon="confirmation-number"
+              text={outOfHosts ? `You've hosted ${caps.hosts_limit} plan this week. It resets Monday 00:00 IST.` : `Publishing uses your weekly host slot (${caps.hosts_limit - caps.hosts_used} left).`}
+            />
+          ) : null}
+          {outOfHosts ? (
+            <Button label="Host unlimited with Plus" icon="workspace-premium" variant="secondary" size="md" onPress={() => router.push({ pathname: '/premium', params: { source: 'host_cap' } })} />
+          ) : null}
+          {error ? <Notice tone="danger" text={error} /> : null}
+        </View>
       </Screen>
     );
   }
@@ -222,33 +364,27 @@ export default function CreatePlan() {
           onPress={() => setOpen(open === 'time' ? null : 'time')}
         />
       </View>
-      {open === 'date' ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.bleed} contentContainerStyle={styles.chipRow}>
-          {days.map((d) => (
-            <Chip key={d.key} label={`${d.label} · ${d.sub}`} selected={d.key === dayKey} onPress={() => setDayKey(d.key)} />
-          ))}
-        </ScrollView>
-      ) : null}
-      {open === 'time' ? (
-        <View style={styles.list}>
-          {times.length ? (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.bleed} contentContainerStyle={styles.chipRow}>
-              {times.map((m) => (
-                <Chip key={m} label={minutesLabel(m)} selected={m === start} onPress={() => setStart(m)} />
-              ))}
-            </ScrollView>
-          ) : (
-            <Text variant="small" color="textSubtle">
-              No start times left today. Pick another day.
-            </Text>
-          )}
+      <DatePicker visible={open === 'date'} onClose={() => setOpen(null)} value={dayKey} onChange={setDayKey} minDay={minDay} maxDay={maxDay} title="Plan date" />
+      <TimePicker
+        visible={open === 'time'}
+        onClose={() => setOpen(null)}
+        value={start}
+        onChange={setStart}
+        isAllowed={allowed}
+        title={`Start time · ${day.label}, ${day.sub}`}
+        emptyText="No start times left on this day. Pick another date."
+      >
+        <View style={styles.group}>
+          <Text variant="label" color="textSubtle">
+            Duration
+          </Text>
           <View style={styles.chipWrap}>
             {DURATIONS.map((d) => (
               <Chip key={d} label={`${d / 60} hr${d > 60 ? 's' : ''}`} selected={duration === d} onPress={() => setDuration(d)} />
             ))}
           </View>
         </View>
-      ) : null}
+      </TimePicker>
 
       <SectionHeader title="Public meeting point" small />
       <Field
@@ -259,8 +395,6 @@ export default function CreatePlan() {
         onPress={() => router.push('/plan/venue')}
         trailingIcon={venue ? 'verified' : 'chevron-right'}
       />
-      <Notice text="Residential or private addresses are not allowed. Plans happen only at checked public venues." />
-
       <Card style={styles.row}>
         <View style={styles.flex}>
           <Text variant="bodyStrong">Group capacity</Text>
@@ -278,7 +412,11 @@ export default function CreatePlan() {
           onChange={setApproval}
         />
       </Card>
-      {error ? <Notice tone="danger" text={error} /> : null}
+      {error ? (
+        <View style={styles.notes}>
+          <Notice tone="danger" text={error} />
+        </View>
+      ) : null}
     </Screen>
   );
 }
@@ -300,9 +438,27 @@ const styles = StyleSheet.create({
   },
   tileOn: { borderColor: colors.borderStrong, backgroundColor: colors.surface2 },
   tileHead: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: space.sm },
-  list: { gap: space.sm, marginTop: space.md },
-  row: { flexDirection: 'row', alignItems: 'center', marginTop: space.lg },
+  stack: { gap: space.sm },
+  group: { gap: space.sm },
+  notes: { gap: space.md, marginTop: space.lg },
+  row: { flexDirection: 'row', alignItems: 'center', marginTop: space.lg, marginBottom: space.md },
   flex: { flex: 1, gap: 2 },
-  preview: { marginTop: space.md },
   previewCover: { height: 140, borderRadius: radii.lg, padding: space.md },
+  bannerRow: { flexDirection: 'row', alignItems: 'center', gap: space.lg },
+  banner: {
+    width: 112,
+    height: 112,
+    borderRadius: radii.xl,
+    overflow: 'hidden',
+    backgroundColor: colors.surface2,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    borderStyle: 'dashed',
+  },
+  bannerEmpty: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  bannerBusy: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.overlay },
+  remove: { alignSelf: 'flex-start', paddingHorizontal: 0, marginTop: space.xs },
+  price: { gap: space.md, marginTop: space.lg },
+  split: { gap: space.sm, padding: space.md, borderRadius: radii.lg, backgroundColor: colors.surface2 },
+  splitRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
 });

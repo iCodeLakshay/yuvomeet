@@ -1,9 +1,9 @@
-import { checkText, MAX_JOIN_NOTE_CHARS } from '@yuvomeet/shared';
+import { checkText, MAX_JOIN_NOTE_CHARS, formatRupees } from '@yuvomeet/shared';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useCaps, usePlan, useRequestJoin } from '../../../../src/features/plans/api';
+import { isPaid, useCaps, usePlan, useRequestJoin } from '../../../../src/features/plans/api';
 import { spotsLeft, useActivityMeta } from '../../../../src/features/plans/usePlanMeta';
 import { errorMessage } from '../../../../src/lib/errors';
 import { formatPlanTime } from '../../../../src/lib/format';
@@ -40,13 +40,20 @@ export default function JoinSheet() {
 
   if (!plan) return null;
   const left = spotsLeft(plan);
-  const outOfJoins = caps ? caps.joins_used >= caps.joins_limit : false;
+  const paid = isPaid(caps);
+  const outOfJoins = caps ? !paid && caps.joins_used >= caps.joins_limit : false;
+  const upgrade = () => router.push({ pathname: '/premium', params: { source: 'join_cap' } });
 
   const submit = () => {
     const noteError = note.trim() ? checkText(note, 'Note', 0, MAX_JOIN_NOTE_CHARS) : null;
     setError(noteError);
     if (noteError) return;
-    join.mutate(note.trim(), { onError: (e) => setError(errorMessage(e)) });
+    join.mutate(note.trim(), {
+      onError: (e) => {
+        setError(errorMessage(e));
+        if ((e as { code?: string }).code === 'CAP_REACHED') upgrade();
+      },
+    });
   };
 
   return (
@@ -73,9 +80,9 @@ export default function JoinSheet() {
         <Text variant="body" color="textMuted" style={styles.flex}>
           {left} {left === 1 ? 'spot' : 'spots'} remaining
         </Text>
-        <Text variant="bodyStrong">Free entry</Text>
+        <Text variant="bodyStrong">{plan.price_paise ? `${formatRupees(plan.price_paise)} / person` : 'Free entry'}</Text>
         <Text variant="caption" color="textSubtle">
-          (pay for your own order)
+          {plan.price_paise ? '(pay after approval)' : '(pay for your own order)'}
         </Text>
       </View>
 
@@ -90,7 +97,7 @@ export default function JoinSheet() {
         error={error}
       />
 
-      {caps ? (
+      {caps && !paid ? (
         <Notice
           tone={outOfJoins ? 'warning' : 'info'}
           icon="confirmation-number"
@@ -101,21 +108,20 @@ export default function JoinSheet() {
           }
         />
       ) : null}
-      <View style={styles.meta}>
-        <Icon name="verified-user" size={16} color="textSubtle" />
-        <Text variant="caption" color="textSubtle">
-          Verified 18+ members only · Approved public venue
-        </Text>
-      </View>
-
-      <Button
-        label={plan.requires_approval ? 'Request to Join' : 'Join now'}
-        trailingIcon="arrow-forward"
-        loading={join.isPending}
-        disabled={left === 0 || outOfJoins}
-        onPress={submit}
-      />
-      <Button label="Meetup rules & guidelines" variant="ghost" size="sm" onPress={() => router.push('/help')} />
+      {outOfJoins ? (
+        <Button label="Get unlimited joins" icon="workspace-premium" onPress={upgrade} />
+      ) : (
+        <Button
+          label={plan.requires_approval ? 'Request to Join' : 'Join now'}
+          trailingIcon="arrow-forward"
+          loading={join.isPending}
+          disabled={left === 0}
+          onPress={submit}
+        />
+      )}
+      {caps && caps.entitlement !== 'premium' && plan.requires_approval && !outOfJoins ? (
+        <Button label="Get picked first with Premium" icon="bolt" variant="ghost" size="sm" onPress={() => router.push({ pathname: '/premium', params: { source: 'priority' } })} />
+      ) : null}
     </ScrollView>
   );
 }

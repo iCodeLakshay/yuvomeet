@@ -3,11 +3,12 @@ import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAskLocation, usePlace } from '../../../src/features/location/api';
 import { useUnreadCount } from '../../../src/features/notifications/api';
 import { useFeed, type PlanCard as Plan } from '../../../src/features/plans/api';
 import { PlanCard } from '../../../src/features/plans/PlanCard';
 import { activeFilterCount, feedFilters } from '../../../src/features/plans/stores';
-import { useLookups } from '../../../src/features/profile/api';
+import { useCities, useLookups } from '../../../src/features/profile/api';
 import { isVerified, useMe } from '../../../src/features/session/SessionProvider';
 import { toAppError } from '../../../src/lib/errors';
 import { startSpan } from '../../../src/lib/telemetry';
@@ -39,6 +40,11 @@ export default function Discover() {
   const feed = useFeed(filters);
   const lookups = useLookups();
   const unread = useUnreadCount();
+  const place = usePlace();
+  const askLocation = useAskLocation();
+  const cities = useCities();
+  const homeCity = cities.data?.find((c) => c.id === me?.city_id)?.name ?? null;
+  const placeLabel = place.data?.label ?? (homeCity ? `${homeCity}, India` : 'Set your location');
   const span = useRef<(() => void) | null>(startSpan('feed_first_page'));
 
   const plans = useMemo(() => feed.data?.pages.flat() ?? [], [feed.data]);
@@ -98,7 +104,7 @@ export default function Discover() {
       <View style={styles.sectionRow}>
         <Text variant="title2">Active gatherings</Text>
         <Text variant="label" color="textSubtle">
-          Kota hub
+          {`${homeCity ?? 'City'} hub`}
         </Text>
       </View>
     </View>
@@ -108,15 +114,23 @@ export default function Discover() {
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <View style={styles.top}>
         <View style={styles.cityRow}>
-          <View style={styles.navIcon}>
-            <Icon name="near-me" size={20} />
-          </View>
-          <View style={styles.flex}>
-            <Text variant="title3">Kota, Rajasthan</Text>
-            <Text variant="caption" color="textSubtle">
-              {verified ? 'Verified 18+ member' : 'Browsing · verify to join plans'}
-            </Text>
-          </View>
+          <Pressable
+            onPress={() => (place.data ? void place.refetch() : askLocation.mutate())}
+            accessibilityLabel={place.data ? `Location: ${place.data.label}. Tap to refresh` : 'Use my current location'}
+            style={styles.place}
+          >
+            <View style={styles.navIcon}>
+              <Icon name={place.data ? 'near-me' : 'location-searching'} size={20} />
+            </View>
+            <View style={styles.flex}>
+              <Text variant="title3" numberOfLines={1}>
+                {placeLabel}
+              </Text>
+              <Text variant="caption" color="textSubtle" numberOfLines={1}>
+                {!place.data && !place.isLoading ? 'Tap to use your current location' : verified ? 'Verified 18+ member' : 'Browsing · verify to join plans'}
+              </Text>
+            </View>
+          </Pressable>
           <IconButton icon="notifications-none" label="Notifications" badge={unread > 0} onPress={() => router.push('/notifications')} />
         </View>
         <View style={styles.searchRow}>
@@ -167,6 +181,7 @@ export default function Discover() {
 }
 
 const styles = StyleSheet.create({
+  place: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: space.md },
   root: { flex: 1, backgroundColor: colors.bg },
   top: { paddingHorizontal: gutter, paddingBottom: space.md, gap: space.md, borderBottomWidth: 1, borderBottomColor: colors.border },
   cityRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingTop: space.sm },

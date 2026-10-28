@@ -1,3 +1,4 @@
+import { formatRupees } from '@yuvomeet/shared';
 import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { formatPlanTime } from '../../lib/format';
@@ -38,6 +39,7 @@ export const PlanCard = memo(function PlanCard({ plan, onOpen, onJoin, onHost }:
           <Badge label={activity.label} tone="glass" />
           {plan.audience === 'women_only' ? <Badge label="Women only" tone="glass" icon="female" /> : null}
           {left > 0 && left <= 3 ? <Badge label="Filling fast" tone="glass" icon="local-fire-department" /> : null}
+          {plan.price_paise ? <Badge label={formatRupees(plan.price_paise)} tone="glass" icon="payments" /> : null}
         </View>
         <View style={styles.bottomRow}>
           <View style={styles.time}>

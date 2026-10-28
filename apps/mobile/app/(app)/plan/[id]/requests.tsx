@@ -1,10 +1,10 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { memo, useState } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useDecideJoin, useJoinRequests, usePlan, useRoster } from '../../../../src/features/plans/api';
 import { errorMessage } from '../../../../src/lib/errors';
 import { formatAgo } from '../../../../src/lib/format';
-import { Avatar, Badge, Button, Card, EmptyState, Header, ListRow, Screen, SectionHeader, space, Text } from '../../../../src/ui';
+import { Avatar, Badge, Button, Card, colors, EmptyState, Header, ListRow, notify, Screen, SectionHeader, space, Text } from '../../../../src/ui';
 
 type Request = NonNullable<ReturnType<typeof useJoinRequests>['data']>[number];
 
@@ -13,12 +13,12 @@ const RequestCard = memo(function RequestCard({ request, planId }: { request: Re
   const [choice, setChoice] = useState<boolean | null>(null);
   const run = (approve: boolean) => {
     setChoice(approve);
-    decide.mutate({ userId: request.user_id!, approve }, { onError: (e) => Alert.alert('Could not update', errorMessage(e)) });
+    decide.mutate({ userId: request.user_id!, approve }, { onError: (e) => notify('Could not update', errorMessage(e)) });
   };
   const showUp = request.show_up_rate == null ? 'New member' : `${request.show_up_rate}% show-up`;
 
   return (
-    <Card>
+    <Card style={request.is_priority ? styles.priority : undefined}>
       <ListRow
         leading={<Avatar path={request.photo_path} name={request.first_name} size={48} verified={Boolean(request.is_verified)} />}
         title={`${request.first_name ?? 'Member'}  ${request.age_band ?? ''}`}
@@ -26,6 +26,7 @@ const RequestCard = memo(function RequestCard({ request, planId }: { request: Re
         onPress={() => router.push({ pathname: '/user/[id]', params: { id: request.user_id! } })}
       />
       <View style={styles.badges}>
+        {request.is_priority ? <Badge label="Priority" tone="accent" icon="bolt" /> : null}
         <Badge label={`Requested ${formatAgo(request.requested_at!).toLowerCase()}`} />
         {request.low_priority ? <Badge label="Recent no-shows" tone="warning" icon="info-outline" /> : null}
       </View>
@@ -50,6 +51,9 @@ export default function Requests() {
   const roster = useRoster(id);
   const waiting = (requests.data ?? []).filter((r) => r.status === 'requested');
   const left = Math.max(0, (plan?.capacity ?? 0) - (plan?.approved_count ?? 0));
+  const paidIds = new Set((requests.data ?? []).filter((r) => r.paid_at).map((r) => r.user_id));
+  const memberStatus = (userId: string | null, checkedIn: boolean | null) =>
+    checkedIn ? 'Checked in' : plan?.price_paise ? (paidIds.has(userId) ? 'Paid' : 'Approved · payment pending') : 'Approved';
 
   return (
     <Screen
@@ -74,7 +78,7 @@ export default function Requests() {
           key={m.user_id}
           leading={<Avatar path={m.photo_path} name={m.first_name} size={40} verified={Boolean(m.is_verified)} />}
           title={m.first_name ?? 'Member'}
-          subtitle={m.is_host ? 'Host' : m.checked_in ? 'Checked in' : 'Approved'}
+          subtitle={m.is_host ? 'Host' : memberStatus(m.user_id, m.checked_in)}
           onPress={() => router.push({ pathname: '/user/[id]', params: { id: m.user_id! } })}
         />
       ))}
@@ -83,7 +87,8 @@ export default function Requests() {
 }
 
 const styles = StyleSheet.create({
-  list: { gap: space.md, marginTop: space.md },
+  list: { gap: space.md },
+  priority: { borderColor: colors.accent },
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   actions: { flexDirection: 'row', gap: space.sm },
   flex: { flex: 1 },

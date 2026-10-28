@@ -41,11 +41,29 @@ export function useExportData() {
   });
 }
 
-/** ON-6: immediate effect server-side; the local session ends here too. */
+/** Email on the auth account, when confirmed; the deletion code goes there. */
+export function useAccountEmail() {
+  return useQuery({
+    queryKey: ['me', 'email'],
+    queryFn: async () => {
+      const { data } = await supabase.auth.getUser();
+      return data.user?.email_confirmed_at ? (data.user.email ?? null) : null;
+    },
+  });
+}
+
+/** Step 1 of deletion: emails a 6-digit code (10 minutes). `email` is used only if the account has none. */
+export function useSendDeletionCode() {
+  return useMutation({
+    mutationFn: (email?: string) => callFunction<{ sent_to: string; dev_code?: string }>('delete-account', { action: 'send', email }),
+  });
+}
+
+/** ON-6, step 2: the code is checked server-side, then deletion takes effect and the session ends. */
 export function useDeleteAccount() {
   return useMutation({
-    mutationFn: async () => {
-      await callFunction('delete-account', {});
+    mutationFn: async (code: string) => {
+      await callFunction('delete-account', { action: 'confirm', code });
       await supabase.auth.signOut();
       queryClient.clear();
     },

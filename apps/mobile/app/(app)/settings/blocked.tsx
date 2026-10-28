@@ -1,6 +1,6 @@
 import { useBlocks, useUnblock } from '../../../src/features/safety/api';
 import { formatAgo } from '../../../src/lib/format';
-import { Avatar, Button, EmptyState, Header, ListRow, Screen } from '../../../src/ui';
+import { Avatar, Button, confirm, EmptyState, Header, ListRow, Screen } from '../../../src/ui';
 
 /** S-17: people you blocked. Unblocking does not tell them anything. */
 export default function Blocked() {
@@ -22,7 +22,14 @@ export default function Blocked() {
               size="sm"
               fill={false}
               loading={unblock.isPending && unblock.variables === b.blocked_id}
-              onPress={() => unblock.mutate(b.blocked_id!)}
+              onPress={async () => {
+                const ok = await confirm({
+                  title: `Unblock ${b.first_name ?? 'this member'}?`,
+                  message: "You'll be able to see each other's plans and profiles again. They aren't told.",
+                  confirmLabel: 'Unblock',
+                });
+                if (ok) unblock.mutate(b.blocked_id!);
+              }}
             />
           }
         />

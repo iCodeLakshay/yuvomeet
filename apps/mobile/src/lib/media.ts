@@ -84,7 +84,7 @@ export interface UploadResult {
 /** Uploads to the private quarantine bucket, then asks moderate-image to screen it (S-21). */
 export async function uploadForModeration(
   localUri: string,
-  target: { kind: 'profile'; position: number } | { kind: 'chat'; conversationId: string; messageId: string },
+  target: { kind: 'profile'; position: number } | { kind: 'chat'; conversationId: string; messageId: string } | { kind: 'plan' },
 ): Promise<UploadResult> {
   const { data } = await supabase.auth.getSession();
   const userId = data.session?.user.id;

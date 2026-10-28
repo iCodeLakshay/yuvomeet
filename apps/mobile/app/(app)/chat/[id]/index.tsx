@@ -1,27 +1,30 @@
 import { FlashList } from '@shopify/flash-list';
 import { MAX_MESSAGE_CHARS, screenText, SCREEN_MESSAGES } from '@yuvomeet/shared';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
-import { Alert, KeyboardAvoidingView, StyleSheet, TextInput, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { BackHandler, KeyboardAvoidingView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
-  discardMessage,
+  canDeleteForEveryone,
   retryMessage,
   sendMessage,
   useConversation,
   useDeleteMessage,
+  useHideMessages,
   useMessages,
   useMuted,
   useSendPhoto,
   type Message,
 } from '../../../../src/features/chat/api';
-import { MessageBubble, type Sender } from '../../../../src/features/chat/MessageBubble';
+import { ImageViewer } from '../../../../src/features/chat/ImageViewer';
+import { MessageBubble, type Anchor, type Sender } from '../../../../src/features/chat/MessageBubble';
+import { MessageMenu, type MenuItem } from '../../../../src/features/chat/MessageMenu';
 import { useRoster } from '../../../../src/features/plans/api';
 import { useMe } from '../../../../src/features/session/SessionProvider';
 import { errorMessage } from '../../../../src/lib/errors';
 import { formatDateLong, formatPlanTime } from '../../../../src/lib/format';
 import { pickImage } from '../../../../src/lib/media';
-import { colors, fonts, gutter, Header, IconButton, Notice, radii, space, Text } from '../../../../src/ui';
+import { colors, fonts, gutter, Header, IconButton, Notice, radii, showDialog, space, Text } from '../../../../src/ui';
 
 type Row = { type: 'day'; key: string; label: string } | { type: 'msg'; key: string; m: Message; first: boolean };
 
@@ -38,10 +41,26 @@ export default function GroupChat() {
   const { messages, fetchNextPage, hasNextPage, isFetchingNextPage } = useMessages(id);
   const sendPhoto = useSendPhoto(id);
   const remove = useDeleteMessage(id);
+  const hide = useHideMessages(id);
   const [draft, setDraft] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [menu, setMenu] = useState<{ m: Message; anchor: Anchor } | null>(null);
+  const [selected, setSelected] = useState<Set<string> | null>(null);
+  const [viewing, setViewing] = useState<string | null>(null);
 
   const senders = useMemo(() => new Map<string, Sender>((roster.data ?? []).map((m) => [m.user_id!, m])), [roster.data]);
+  const byId = useMemo(() => new Map(messages.map((m) => [m.id, m])), [messages]);
+  const selecting = selected != null;
+
+  // Back leaves select mode before it leaves the chat.
+  useEffect(() => {
+    if (!selecting) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      setSelected(null);
+      return true;
+    });
+    return () => sub.remove();
+  }, [selecting]);
 
   // useMessages is newest-first; FlashList v2 renders chats oldest-first from the bottom.
   const rows = useMemo<Row[]>(() => {
@@ -62,33 +81,69 @@ export default function GroupChat() {
     return out;
   }, [messages]);
 
-  const onLongPress = useCallback(
-    (m: Message) => {
-      if (m.failed) {
-        discardMessage(id, m.id);
-        return;
-      }
-      if (m.sender_id === me.id) {
-        Alert.alert('Message', undefined, [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Delete for everyone', style: 'destructive', onPress: () => remove.mutate(m.id, { onError: (e) => Alert.alert('Could not delete', errorMessage(e)) }) },
-        ]);
-      } else if (m.sender_id) {
-        const name = senders.get(m.sender_id)?.first_name ?? '';
-        Alert.alert(name || 'Message', undefined, [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'View profile', onPress: () => router.push({ pathname: '/user/[id]', params: { id: m.sender_id! } }) },
-          {
-            text: 'Report message',
-            style: 'destructive',
-            onPress: () => router.push({ pathname: '/report', params: { userId: m.sender_id!, messageId: m.id, planId: convo?.plan_id ?? '', context: 'message', name } }),
-          },
-        ]);
-      }
-    },
-    [convo?.plan_id, id, me.id, remove, senders],
+  const failed = (e: unknown) => setError(errorMessage(e));
+
+  const deleteForMe = useCallback((list: Message[]) => hide.mutate(list, { onError: failed, onSuccess: () => setSelected(null) }), [hide]);
+  const deleteForEveryone = useCallback(
+    (list: Message[]) => remove.mutate(list.map((m) => m.id), { onError: failed, onSuccess: () => setSelected(null) }),
+    [remove],
   );
+
+  const menuItems = useMemo<MenuItem[]>(() => {
+    if (!menu) return [];
+    const m = menu.m;
+    const mine = m.sender_id === me.id;
+    return [
+      { key: 'delete_me', label: 'Delete for me', icon: 'delete-outline' },
+      ...(canDeleteForEveryone(m, me.id) ? [{ key: 'delete_all', label: 'Delete for everyone', icon: 'delete-forever', danger: true } as MenuItem] : []),
+      { key: 'select', label: 'Select', icon: 'check-circle-outline' },
+      ...(!mine && m.sender_id ? [{ key: 'report', label: 'Report', icon: 'outlined-flag', danger: true } as MenuItem] : []),
+    ];
+  }, [menu, me.id]);
+
+  const onMenu = (key: string) => {
+    const m = menu?.m;
+    setMenu(null);
+    if (!m) return;
+    if (key === 'delete_me') deleteForMe([m]);
+    else if (key === 'delete_all') deleteForEveryone([m]);
+    else if (key === 'select') setSelected(new Set([m.id]));
+    else if (key === 'report' && m.sender_id) {
+      const name = senders.get(m.sender_id)?.first_name ?? '';
+      router.push({ pathname: '/report', params: { userId: m.sender_id, messageId: m.id, planId: convo?.plan_id ?? '', context: 'message', name } });
+    }
+  };
+
+  const onLongPress = useCallback((m: Message, anchor: Anchor) => setMenu({ m, anchor }), []);
   const onRetry = useCallback((m: Message) => retryMessage(id, m.id), [id]);
+  const onToggleSelect = useCallback(
+    (m: Message) =>
+      setSelected((prev) => {
+        const next = new Set(prev ?? []);
+        if (next.has(m.id)) next.delete(m.id);
+        else next.add(m.id);
+        return next.size ? next : null;
+      }),
+    [],
+  );
+
+  const deleteSelected = async () => {
+    const list = [...(selected ?? [])].map((key) => byId.get(key)).filter((m): m is Message => Boolean(m));
+    if (!list.length) return;
+    const everyone = list.every((m) => canDeleteForEveryone(m, me.id));
+    const choice = await showDialog({
+      title: `Delete ${list.length} message${list.length > 1 ? 's' : ''}?`,
+      icon: 'delete-outline',
+      danger: true,
+      cancelLabel: 'Cancel',
+      actions: [
+        ...(everyone ? [{ label: 'Delete for everyone', value: 'all', tone: 'danger' as const }] : []),
+        { label: 'Delete for me', value: 'me', tone: everyone ? ('secondary' as const) : ('danger' as const) },
+      ],
+    });
+    if (choice === 'all') deleteForEveryone(list);
+    else if (choice === 'me') deleteForMe(list);
+  };
 
   const renderItem = useCallback(
     ({ item }: { item: Row }) =>
@@ -104,9 +159,13 @@ export default function GroupChat() {
           first={item.first}
           onLongPress={onLongPress}
           onRetry={onRetry}
+          onOpenImage={setViewing}
+          selecting={selecting}
+          selected={selected?.has(item.m.id) ?? false}
+          onToggleSelect={onToggleSelect}
         />
       ),
-    [me.id, onLongPress, onRetry, senders],
+    [me.id, onLongPress, onRetry, onToggleSelect, selected, selecting, senders],
   );
 
   const send = () => {
@@ -135,21 +194,29 @@ export default function GroupChat() {
   };
 
   const closed = convo?.status === 'closed';
+  const openInfo = () => router.push({ pathname: '/chat/[id]/members', params: { id } });
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      <Header
-        title={convo?.title ?? 'Group chat'}
-        subtitle={convo ? `${formatPlanTime(convo.starts_at!)} • ${convo.approved_count ?? 0} members` : undefined}
-        right={<IconButton icon="more-vert" label="Chat details" variant="plain" onPress={() => router.push({ pathname: '/chat/[id]/members', params: { id } })} />}
-      />
-      <View style={styles.notice}>
-        <Notice text="Meet only at the plan's public venue. Never share private details, OTPs or payment PINs." title="Safety notice" />
-      </View>
+      {selecting ? (
+        <Header
+          title={`${selected.size} selected`}
+          leading="close"
+          onLeading={() => setSelected(null)}
+          right={<IconButton icon="delete-outline" label="Delete selected" variant="plain" color="danger" onPress={deleteSelected} />}
+        />
+      ) : (
+        <Header
+          title={convo?.title ?? 'Group chat'}
+          subtitle={convo ? `${formatPlanTime(convo.starts_at!)} • ${convo.approved_count ?? 0} members` : undefined}
+          right={<IconButton icon="info-outline" label="Group info" variant="plain" onPress={openInfo} />}
+        />
+      )}
       <KeyboardAvoidingView style={styles.flex} behavior="padding">
         <FlashList
           data={rows}
           renderItem={renderItem}
+          extraData={selected}
           keyExtractor={(r) => r.key}
           getItemType={(r) => r.type}
           maintainVisibleContentPosition={{ startRenderingFromBottom: true, autoscrollToBottomThreshold: 0.2 }}
@@ -170,9 +237,9 @@ export default function GroupChat() {
         ) : null}
         <View style={[styles.composerWrap, { paddingBottom: insets.bottom + space.sm }]}>
           {closed ? (
-            <Notice text="This chat closed 24 hours after the plan ended. Messages are kept for safety reviews." icon="lock-outline" />
+            <Notice text="This chat closed 24 hours after the plan ended." icon="lock-outline" />
           ) : muted ? (
-            <Notice tone="warning" text="A moderator muted you in this chat. You can still read messages and report." icon="volume-off" />
+            <Notice tone="warning" text="A moderator muted you in this chat. You can still read messages." icon="volume-off" />
           ) : (
             <View style={styles.composer}>
               <IconButton icon="add-photo-alternate" label="Send a photo" variant="plain" color="textMuted" onPress={attach} />
@@ -192,6 +259,8 @@ export default function GroupChat() {
           )}
         </View>
       </KeyboardAvoidingView>
+      <MessageMenu anchor={menu?.anchor ?? null} alignRight={menu?.m.sender_id === me.id} items={menuItems} onSelect={onMenu} onClose={() => setMenu(null)} />
+      <ImageViewer path={viewing} onClose={() => setViewing(null)} />
     </View>
   );
 }

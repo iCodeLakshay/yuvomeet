@@ -91,7 +91,14 @@ export function useMessages(conversationId: string) {
     queryKey: qk.messages(conversationId),
     initialPageParam: null as string | null,
     queryFn: async ({ pageParam }) => {
-      let q = supabase.from('messages').select(COLUMNS).eq('conversation_id', conversationId).order('created_at', { ascending: false }).limit(PAGE);
+      // Senders can read their own deleted rows (RLS); the chat never shows them.
+      let q = supabase
+        .from('messages')
+        .select(COLUMNS)
+        .eq('conversation_id', conversationId)
+        .neq('status', 'rejected')
+        .order('created_at', { ascending: false })
+        .limit(PAGE);
       if (pageParam) q = q.lt('created_at', pageParam);
       return unwrap(await q) as Message[];
     },
@@ -171,10 +178,42 @@ export function useSendPhoto(conversationId: string) {
   });
 }
 
+/** "Delete for everyone" is open for this long after sending (delete_message re-checks). */
+export const DELETE_FOR_EVERYONE_MS = 10 * 60_000;
+
+export const canDeleteForEveryone = (m: Message, userId: string, now = Date.now()) =>
+  m.sender_id === userId && !m.pending && !m.failed && now - Date.parse(m.created_at) < DELETE_FOR_EVERYONE_MS;
+
+function dropFromCache(conversationId: string, ids: string[]) {
+  const gone = new Set(ids);
+  queryClient.setQueryData<InfiniteData<Message[]>>(qk.messages(conversationId), (data) =>
+    data ? { ...data, pages: data.pages.map((p) => p.filter((m) => !gone.has(m.id))) } : data,
+  );
+  writeOutbox(conversationId, readOutbox(conversationId).filter((m) => !gone.has(m.id)));
+}
+
+/** Delete for everyone: one or more of your own messages sent in the last 10 minutes. */
 export function useDeleteMessage(conversationId: string) {
   return useMutation({
-    mutationFn: async (messageId: string) => unwrap(await supabase.rpc('delete_message', { p_message_id: messageId })),
+    mutationFn: async (messageIds: string[]) => {
+      for (const id of messageIds) unwrap(await supabase.rpc('delete_message', { p_message_id: id }));
+      return messageIds;
+    },
+    onSuccess: (ids) => dropFromCache(conversationId, ids),
     onSettled: () => queryClient.invalidateQueries({ queryKey: qk.messages(conversationId) }),
+  });
+}
+
+/** Delete for me: hidden for this account only; others still see the messages. */
+export function useHideMessages(conversationId: string) {
+  return useMutation({
+    mutationFn: async (messages: Message[]) => {
+      const local = messages.filter((m) => m.pending || m.failed).map((m) => m.id);
+      const server = messages.filter((m) => !m.pending && !m.failed).map((m) => m.id);
+      if (server.length) unwrap(await supabase.rpc('hide_messages', { p_message_ids: server }));
+      return [...local, ...server];
+    },
+    onSuccess: (ids) => dropFromCache(conversationId, ids),
   });
 }
 

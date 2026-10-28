@@ -1,11 +1,12 @@
-import { CHECKIN_WINDOW_MIN } from '@yuvomeet/shared';
+import { CHECKIN_WINDOW_MIN, formatRupees } from '@yuvomeet/shared';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect } from 'react';
-import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLeavePlan, usePlan, useRoster, type PlanCard } from '../../../../src/features/plans/api';
 import { PlanCover } from '../../../../src/features/plans/PlanCover';
 import { spotsLeft, useActivityMeta } from '../../../../src/features/plans/usePlanMeta';
+import { usePaySeat } from '../../../../src/features/premium/api';
 import { sharePlanWithContact, useTrustedContact } from '../../../../src/features/safety/api';
 import { isVerified, useMe } from '../../../../src/features/session/SessionProvider';
 import { errorMessage } from '../../../../src/lib/errors';
@@ -19,6 +20,7 @@ import {
   Button,
   Card,
   colors,
+  confirm,
   EmptyState,
   gutter,
   Header,
@@ -26,18 +28,12 @@ import {
   IconButton,
   InfoTile,
   Notice,
+  notify,
   Pressable,
   Screen,
   space,
   Text,
-  type IconName,
 } from '../../../../src/ui';
-
-const RULES: { icon: IconName; title: string; body: string }[] = [
-  { icon: 'verified-user', title: 'Verified 18+ only:', body: 'Every member passed an age and selfie check.' },
-  { icon: 'storefront', title: 'Approved public venue:', body: 'Plans happen only at checked, high-footfall spots.' },
-  { icon: 'report-gmailerrorred', title: 'Zero tolerance:', body: 'No harassment. Keep contact details off until you have met.' },
-];
 
 const hours = (p: PlanCard) => Math.round(((Date.parse(p.ends_at!) - Date.parse(p.starts_at!)) / 3_600_000) * 10) / 10;
 
@@ -88,11 +84,17 @@ export default function PlanDetails() {
       },
       contact.data ?? null,
     );
-  const confirmLeave = () =>
-    Alert.alert('Leave this plan?', 'Your spot opens up for someone else. The weekly join you used is not returned.', [
-      { text: 'Stay', style: 'cancel' },
-      { text: 'Leave', style: 'destructive', onPress: () => leave.mutate(undefined, { onError: (e) => Alert.alert('Could not leave', errorMessage(e)) }) },
-    ]);
+  const confirmLeave = async () => {
+    const ok = await confirm({
+      title: 'Leave this plan?',
+      message: 'Your spot opens up for someone else. The weekly join you used is not returned.',
+      confirmLabel: 'Leave plan',
+      cancelLabel: 'Stay',
+      icon: 'logout',
+      danger: true,
+    });
+    if (ok) leave.mutate(undefined, { onError: (e) => notify('Could not leave', errorMessage(e)) });
+  };
 
   return (
     <Screen fullBleed padded={false} footer={upcoming ? <Footer plan={plan} isHost={isHost} verified={isVerified(me)} left={left} /> : undefined}>
@@ -120,13 +122,26 @@ export default function PlanDetails() {
           {plan.audience === 'women_only' ? <Badge label="Women only" icon="female" /> : null}
           {plan.audience === 'same_college' ? <Badge label={plan.host_college ?? 'Same college'} icon="school" /> : null}
           {plan.requires_approval ? <Badge label="Host approves" icon="how-to-reg" /> : <Badge label="Instant join" icon="bolt" />}
+          {plan.price_paise ? <Badge label={`${formatRupees(plan.price_paise)} per person`} icon="payments" tone="accent" /> : null}
         </View>
         <Text variant="title1">{plan.title}</Text>
 
         {plan.status === 'cancelled' ? (
           <Notice tone="danger" title="This plan was cancelled" text={plan.cancel_reason ?? 'The host cancelled this plan.'} />
         ) : null}
-        {plan.status === 'completed' ? <Notice tone="success" text="This plan has ended. Thanks for meeting safely." /> : null}
+        {plan.status === 'completed' ? <Notice tone="success" text="This plan has ended. Hope it was a good one." /> : null}
+        {plan.price_paise && plan.my_status === 'approved' && !isHost && upcoming ? (
+          plan.my_paid_at ? (
+            <Notice tone="success" icon="verified" text={`Seat paid · ${formatRupees(plan.price_paise)}. Leaving more than 24 hours before the start gets you a full refund.`} />
+          ) : (
+            <Notice
+              tone="warning"
+              icon="payments"
+              title="Pay to confirm your seat"
+              text={`The host approved you. Pay ${formatRupees(plan.price_paise)}${plan.my_pay_by ? ` by ${formatTime(plan.my_pay_by)}, ${formatDateLong(plan.my_pay_by)}` : ''} or the seat is released.`}
+            />
+          )
+        ) : null}
 
         <InfoTile
           icon="calendar-today"
@@ -144,7 +159,7 @@ export default function PlanDetails() {
           <Pressable onPress={() => router.push({ pathname: '/venues/[id]', params: { id: plan.venue_id! } })} accessibilityLabel="About this venue" style={styles.safeZone}>
             <Icon name="verified" size={16} color="success" />
             <Text variant="caption" color="success">
-              {plan.venue_partner ? 'Partner venue · verified safe zone' : 'Public venue verified & safe zone'}
+              {plan.venue_partner ? 'Partner venue' : 'Verified public venue'}
             </Text>
           </Pressable>
         </InfoTile>
@@ -219,26 +234,12 @@ export default function PlanDetails() {
           )}
         </Card>
 
-        <Card>
-          <View style={styles.hostRow}>
-            <Icon name="shield" size={22} color="textMuted" />
-            <Text variant="title3">Meetup Rules & Safety</Text>
-          </View>
-          {RULES.map((r) => (
-            <View key={r.title} style={styles.rule}>
-              <Icon name={r.icon} size={20} color="success" />
-              <Text variant="body" color="textMuted" style={styles.flex}>
-                <Text variant="bodyStrong">{r.title}</Text> {r.body}
-              </Text>
-            </View>
-          ))}
-        </Card>
-
         {member && upcoming ? (
           <Button
-            label="SOS · Get help now"
+            label="Get help"
             icon="sos"
-            variant="sos"
+            variant="secondary"
+            size="md"
             onPress={() => router.push({ pathname: '/safety/sos', params: { planId: plan.id! } })}
           />
         ) : null}
@@ -259,6 +260,8 @@ function Footer({ plan, isHost, verified, left }: FooterProps) {
   const id = plan.id!;
   const chat = () => router.push({ pathname: '/chat/[id]', params: { id: plan.conversation_id! } });
   const checkIn = inCheckInWindow(plan) && (isHost || plan.my_status === 'approved');
+  const pay = usePaySeat(id);
+  const unpaid = Boolean(plan.price_paise) && !plan.my_paid_at;
 
   let cta: React.ReactNode;
   if (isHost) {
@@ -267,6 +270,14 @@ function Footer({ plan, isHost, verified, left }: FooterProps) {
         <Button label="Cancel" variant="secondary" fill={false} onPress={() => router.push({ pathname: '/plan/[id]/cancel', params: { id } })} />
         <Button label="Requests" icon="how-to-reg" fill={false} style={styles.flex} onPress={() => router.push({ pathname: '/plan/[id]/requests', params: { id } })} />
       </View>
+    );
+  } else if (plan.my_status === 'approved' && unpaid) {
+    cta = (
+      <>
+        <Button label={`Pay ${formatRupees(plan.price_paise!)} to confirm seat`} icon="lock" loading={pay.isPending} onPress={() => pay.mutate()} />
+        {pay.data === 'created' ? <Notice tone="warning" text="Payment not confirmed yet. If money left your account, your seat confirms within a few minutes." /> : null}
+        {pay.error ? <Notice tone="danger" text={errorMessage(pay.error)} /> : null}
+      </>
     );
   } else if (plan.my_status === 'approved') {
     cta = (
@@ -286,7 +297,7 @@ function Footer({ plan, isHost, verified, left }: FooterProps) {
           <Text variant="label" color="textSubtle">
             Admission
           </Text>
-          <Text variant="title3">Free to join</Text>
+          <Text variant="title3">{plan.price_paise ? `${formatRupees(plan.price_paise)} / person` : 'Free to join'}</Text>
         </View>
         <Button
           label={verified ? 'Join Plan' : 'Verify to join'}
@@ -306,7 +317,7 @@ function Footer({ plan, isHost, verified, left }: FooterProps) {
       <View style={styles.footNote}>
         <Icon name="receipt-long" size={14} color="textSubtle" />
         <Text variant="caption" color="textSubtle">
-          Everyone pays for their own order at the venue
+          {plan.price_paise ? 'Paid securely via Razorpay after the host approves you' : 'Everyone pays for their own order at the venue'}
         </Text>
       </View>
     </>
@@ -335,7 +346,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   stackRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
-  rule: { flexDirection: 'row', gap: space.md },
   footerRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   footNote: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.xs },
 });

@@ -14,7 +14,7 @@ major_version = 17
 
 [db.seed]
 enabled = true
-sql_paths = ["./seed.sql"]
+sql_paths = ["./seed.sql", "./seeds/demo.sql"]
 
 [realtime]
 enabled = true
@@ -90,6 +90,18 @@ secrets = "env(SEND_SMS_HOOK_SECRET)"
 enabled = true
 uri = "pg-functions://postgres/public/custom_access_token"
 
+# Hosted dev project: `supabase config push` merges these over the local values above.
+[remotes.dev]
+project_id = "vzughvdsuypjymlvishl"
+
+[remotes.dev.auth]
+site_url = "yuvomeet://"
+
+[remotes.dev.auth.hook.send_sms]
+enabled = true
+uri = "https://vzughvdsuypjymlvishl.supabase.co/functions/v1/send-sms"
+secrets = "env(SEND_SMS_HOOK_SECRET)"
+
 [edge_runtime]
 enabled = true
 policy = "per_worker"
@@ -111,4 +123,13 @@ verify_jwt = false
 
 
 [functions.analytics-flush]
+verify_jwt = false
+
+[functions.razorpay-webhook]
+verify_jwt = false
+
+[functions.payments-return]
+verify_jwt = false
+
+[functions.payments-refunds]
 verify_jwt = false

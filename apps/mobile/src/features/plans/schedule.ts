@@ -11,6 +11,22 @@ export interface DayOption {
   sub: string;
 }
 
+/** How far ahead a plan can be scheduled. */
+export const MAX_DAYS_AHEAD = 60;
+
+/** 00:00 IST today as a day key. */
+export function todayKey(now = Date.now()): number {
+  const ist = new Date(now + IST_OFFSET);
+  return Date.UTC(ist.getUTCFullYear(), ist.getUTCMonth(), ist.getUTCDate()) - IST_OFFSET;
+}
+
+/** Today / Tomorrow / weekday label plus "12 Oct" for any day key. */
+export function dayLabel(key: number, now = Date.now()): DayOption {
+  const i = Math.round((key - todayKey(now)) / DAY);
+  const d = new Date(key + 12 * 3_600_000);
+  return { key, label: i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : weekday.format(d), sub: dayMonth.format(d) };
+}
+
 /** The next 14 days in IST, labelled Today / Tomorrow / Sat. */
 export function dayOptions(now = Date.now()): DayOption[] {
   const ist = new Date(now + IST_OFFSET);
@@ -20,6 +36,17 @@ export function dayOptions(now = Date.now()): DayOption[] {
     const d = new Date(key + 12 * 3_600_000);
     return { key, label: i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : weekday.format(d), sub: dayMonth.format(d) };
   });
+}
+
+/**
+ * Whether a plan of `durationMin` can start at `minutes` on the day: from 06:00 IST, at least
+ * the lead time away (S-31), and ending by the cutoff unless the venue allows late events (S-32).
+ */
+export function isStartAllowed(dayKey: number, minutes: number, durationMin: number, now = Date.now(), lateAllowed = false): boolean {
+  if (minutes < 6 * 60) return false;
+  const lastEnd = (lateAllowed ? 24 : PLAN_CUTOFF_LOCAL_HOUR) * 60;
+  if (minutes + durationMin > lastEnd) return false;
+  return dayKey + minutes * 60_000 >= now + PLAN_MIN_LEAD_HOURS * 3_600_000;
 }
 
 /** Start times every 30 minutes from 07:00 IST that still respect the lead time (S-31). */

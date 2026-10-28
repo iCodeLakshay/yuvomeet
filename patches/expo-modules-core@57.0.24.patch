@@ -1,0 +1,24 @@
+diff --git a/android/build.gradle b/android/build.gradle
+index 5401b38b0c006e2129def9528bab51fa80b0633e..7d711240904ca578dc94ef68a9ad39cd39be4056 100644
+--- a/android/build.gradle
++++ b/android/build.gradle
+@@ -67,12 +67,13 @@ def workletsProject = enableWorkletsIntegration ? findProject(":react-native-wor
+ if (workletsProject != null) {
+   evaluationDependsOn(workletsProject.path)
+ 
+-  afterEvaluate {
+-    println("Linking react-native-worklets native libs into expo-modules-core build tasks")
+-    println(workletsProject.tasks.getByName("mergeDebugNativeLibs"))
+-    println(workletsProject.tasks.getByName("mergeReleaseNativeLibs"))
+-    tasks.getByName("buildCMakeDebug").dependsOn(workletsProject.tasks.getByName("mergeDebugNativeLibs"))
+-    tasks.getByName("buildCMakeRelWithDebInfo").dependsOn(workletsProject.tasks.getByName("mergeReleaseNativeLibs"))
++  // Lazy wiring: in this monorepo worklets' variant tasks can be created after this
++  // project's afterEvaluate, so eager getByName fails with "mergeDebugNativeLibs not found".
++  tasks.matching { it.name == "buildCMakeDebug" }.configureEach {
++    dependsOn(workletsProject.tasks.matching { it.name == "mergeDebugNativeLibs" })
++  }
++  tasks.matching { it.name == "buildCMakeRelWithDebInfo" }.configureEach {
++    dependsOn(workletsProject.tasks.matching { it.name == "mergeReleaseNativeLibs" })
+   }
+ }
+ 

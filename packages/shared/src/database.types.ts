@@ -9,6 +9,125 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      message_hides: {
+        Row: { created_at: string; message_id: string; user_id: string }
+        ComputedFields: never
+        Insert: { created_at?: string; message_id: string; user_id: string }
+        Update: { created_at?: string; message_id?: string; user_id?: string }
+        Relationships: []
+      }
+      payout_accounts: {
+        Row: { holder_name: string; updated_at: string; upi_id: string; user_id: string }
+        ComputedFields: never
+        Insert: { holder_name: string; updated_at?: string; upi_id: string; user_id: string }
+        Update: { holder_name?: string; updated_at?: string; upi_id?: string; user_id?: string }
+        Relationships: []
+      }
+      host_payouts: {
+        Row: { amount_paise: number; created_at: string; host_id: string; id: string; paid_by: string | null; reference: string | null }
+        ComputedFields: never
+        Insert: { amount_paise: number; created_at?: string; host_id: string; id?: string; paid_by?: string | null; reference?: string | null }
+        Update: { amount_paise?: number; created_at?: string; host_id?: string; id?: string; paid_by?: string | null; reference?: string | null }
+        Relationships: []
+      }
+      payments: {
+        Row: {
+          amount_paise: number
+          created_at: string
+          days: number | null
+          host_id: string | null
+          host_payout_paise: number
+          id: string
+          kind: string
+          paid_at: string | null
+          plan_id: string | null
+          platform_fee_paise: number
+          product_id: string
+          razorpay_link_id: string | null
+          razorpay_payment_id: string | null
+          refund_id: string | null
+          refunded_at: string | null
+          status: string
+          tier: Database["public"]["Enums"]["entitlement"] | null
+          user_id: string
+        }
+        ComputedFields: never
+        Insert: {
+          amount_paise: number
+          created_at?: string
+          days?: number | null
+          host_id?: string | null
+          host_payout_paise?: number
+          id?: string
+          kind?: string
+          paid_at?: string | null
+          plan_id?: string | null
+          platform_fee_paise?: number
+          product_id: string
+          razorpay_link_id?: string | null
+          razorpay_payment_id?: string | null
+          refund_id?: string | null
+          refunded_at?: string | null
+          status?: string
+          tier?: Database["public"]["Enums"]["entitlement"] | null
+          user_id: string
+        }
+        Update: {
+          amount_paise?: number
+          created_at?: string
+          days?: number | null
+          host_id?: string | null
+          host_payout_paise?: number
+          id?: string
+          kind?: string
+          paid_at?: string | null
+          plan_id?: string | null
+          platform_fee_paise?: number
+          refund_id?: string | null
+          refunded_at?: string | null
+          product_id?: string
+          razorpay_link_id?: string | null
+          razorpay_payment_id?: string | null
+          status?: string
+          tier?: Database["public"]["Enums"]["entitlement"] | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      plan_covers: {
+        Row: {
+          created_at: string
+          id: string
+          path: string | null
+          quarantine_path: string
+          sha256: string | null
+          status: Database["public"]["Enums"]["media_status"]
+          updated_at: string
+          user_id: string
+        }
+        ComputedFields: never
+        Insert: {
+          created_at?: string
+          id?: string
+          path?: string | null
+          quarantine_path: string
+          sha256?: string | null
+          status?: Database["public"]["Enums"]["media_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          path?: string | null
+          quarantine_path?: string
+          sha256?: string | null
+          status?: Database["public"]["Enums"]["media_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       activities: {
         Row: {
           icon: string
@@ -676,6 +795,8 @@ export type Database = {
           checked_in_at: string | null
           decided_at: string | null
           note: string | null
+          paid_at: string | null
+          pay_by: string | null
           plan_id: string
           requested_at: string
           status: Database["public"]["Enums"]["member_status"]
@@ -687,6 +808,8 @@ export type Database = {
           checked_in_at?: string | null
           decided_at?: string | null
           note?: string | null
+          paid_at?: string | null
+          pay_by?: string | null
           plan_id: string
           requested_at?: string
           status?: Database["public"]["Enums"]["member_status"]
@@ -697,6 +820,8 @@ export type Database = {
           checked_in_at?: string | null
           decided_at?: string | null
           note?: string | null
+          paid_at?: string | null
+          pay_by?: string | null
           plan_id?: string
           requested_at?: string
           status?: Database["public"]["Enums"]["member_status"]
@@ -746,6 +871,7 @@ export type Database = {
           capacity: number
           city_id: string
           college_id: string | null
+          cover_id: string | null
           created_at: string
           description: string | null
           ends_at: string
@@ -771,6 +897,7 @@ export type Database = {
           capacity: number
           city_id: string
           college_id?: string | null
+          cover_id?: string | null
           created_at?: string
           description?: string | null
           ends_at: string
@@ -795,6 +922,7 @@ export type Database = {
           capacity?: number
           city_id?: string
           college_id?: string | null
+          cover_id?: string | null
           created_at?: string
           description?: string | null
           ends_at?: string
@@ -986,6 +1114,7 @@ export type Database = {
           declared_gender: Database["public"]["Enums"]["gender"] | null
           deleted_at: string | null
           entitlement: Database["public"]["Enums"]["entitlement"]
+          entitlement_until: string | null
           first_name: string
           id: string
           interests: string[]
@@ -1011,6 +1140,7 @@ export type Database = {
           declared_gender?: Database["public"]["Enums"]["gender"] | null
           deleted_at?: string | null
           entitlement?: Database["public"]["Enums"]["entitlement"]
+          entitlement_until?: string | null
           first_name?: string
           id: string
           interests?: string[]
@@ -1035,6 +1165,7 @@ export type Database = {
           declared_gender?: Database["public"]["Enums"]["gender"] | null
           deleted_at?: string | null
           entitlement?: Database["public"]["Enums"]["entitlement"]
+          entitlement_until?: string | null
           first_name?: string
           id?: string
           interests?: string[]
@@ -1563,9 +1694,11 @@ export type Database = {
           age_band: string | null
           first_name: string | null
           interests: string[] | null
+          is_priority: boolean | null
           is_verified: boolean | null
           low_priority: boolean | null
           note: string | null
+          paid_at: string | null
           photo_path: string | null
           plan_id: string | null
           plans_attended: number | null
@@ -1709,7 +1842,9 @@ export type Database = {
           cover_path: string | null
           description: string | null
           ends_at: string | null
+          has_custom_cover: boolean | null
           host_age_band: string | null
+          host_boosted: boolean | null
           host_college: string | null
           host_first_name: string | null
           host_id: string | null
@@ -1721,6 +1856,8 @@ export type Database = {
           late_cancel: boolean | null
           member_names: string[] | null
           my_checked_in_at: string | null
+          my_paid_at: string | null
+          my_pay_by: string | null
           my_status: Database["public"]["Enums"]["member_status"] | null
           requires_approval: boolean | null
           starts_at: string | null
@@ -1733,6 +1870,7 @@ export type Database = {
           venue_lng: number | null
           venue_name: string | null
           venue_partner: boolean | null
+          price_paise: number | null
         }
         ComputedFields: never
         Relationships: [
@@ -1846,6 +1984,28 @@ export type Database = {
       }
     }
     Functions: {
+      hide_messages: { Args: { p_message_ids: string[] }; Returns: undefined }
+      my_earnings: { Args: Record<PropertyKey, never>; Returns: Json }
+      set_payout_account: { Args: { p_holder_name: string; p_upi_id: string }; Returns: undefined }
+      set_plan_price: { Args: { p_plan_id: string; p_price_paise: number | null }; Returns: undefined }
+      svc_refund_done: { Args: { p_payment: string; p_refund_id: string }; Returns: undefined }
+      svc_setting: { Args: { p_key: string }; Returns: string }
+      set_plan_cover: {
+        Args: { p_cover_id: string | null; p_plan_id: string }
+        Returns: undefined
+      }
+      svc_apply_payment: {
+        Args: { p_payment: string; p_razorpay_payment_id: string | null }
+        Returns: Database["public"]["Enums"]["entitlement"]
+      }
+      svc_deletion_code_check: {
+        Args: { p_code_hmac: string; p_user: string }
+        Returns: string
+      }
+      svc_deletion_code_store: {
+        Args: { p_code_hmac: string; p_email: string; p_user: string }
+        Returns: undefined
+      }
       accept_rules: { Args: { p_policy_version: string }; Returns: undefined }
       admin_cancel_plan: {
         Args: { p_plan_id: string; p_reason: string }

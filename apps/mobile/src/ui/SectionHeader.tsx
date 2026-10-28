@@ -31,6 +31,6 @@ export const SectionHeader = memo(function SectionHeader({ title, icon, meta, ri
 });
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: space.sm, marginTop: space.lg },
+  row: { flexDirection: 'row', alignItems: 'center', gap: space.sm, marginTop: space.xl, marginBottom: space.sm },
   flex: { flex: 1 },
 });

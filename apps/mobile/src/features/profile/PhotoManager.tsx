@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { errorMessage } from '../../lib/errors';
 import { pickImage } from '../../lib/media';
-import { Badge, colors, Icon, Notice, Pressable, RemoteImage, space, Text, type IconName } from '../../ui';
+import { Badge, colors, confirm, Icon, Notice, Pressable, RemoteImage, space, Text, type IconName } from '../../ui';
 import { useAddPhoto, useDeletePhoto, useMyPhotos } from './api';
 
 const STATUS: Record<string, { label: string; tone: 'success' | 'warning' | 'danger' }> = {
@@ -55,6 +55,7 @@ export function PhotoManager() {
 
   const removeSelected = async () => {
     if (!selected) return;
+    if (!(await confirm({ title: 'Remove this photo?', confirmLabel: 'Remove', icon: 'delete-outline', danger: true }))) return;
     setError(null);
     try {
       await remove.mutateAsync(selected.id);

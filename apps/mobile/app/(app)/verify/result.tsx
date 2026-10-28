@@ -84,7 +84,7 @@ export default function VerifyResult() {
   }
 
   return (
-    <Screen header={<Header title="Age Eligibility & Safety" subtitle="Verification notice" leading="close" onLeading={goHome} />} footer={actions}>
+    <Screen header={<Header title="Verification" leading="close" onLeading={goHome} />} footer={actions}>
       <StatusHero {...hero} />
     </Screen>
   );

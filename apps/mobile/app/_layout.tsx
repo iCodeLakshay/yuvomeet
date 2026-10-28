@@ -9,7 +9,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { SessionProvider, useSession } from '../src/features/session/SessionProvider';
 import { queryClient, queryPersister } from '../src/lib/query';
 import { initTelemetry, wrapRoot } from '../src/lib/telemetry';
-import { colors } from '../src/ui';
+import { colors, DialogHost } from '../src/ui';
 
 initTelemetry();
 void SplashScreen.preventAutoHideAsync();
@@ -52,6 +52,7 @@ function RootLayout() {
           <SessionProvider>
             <StatusBar style="light" />
             <Routes />
+            <DialogHost />
           </SessionProvider>
         </PersistQueryClientProvider>
       </SafeAreaProvider>

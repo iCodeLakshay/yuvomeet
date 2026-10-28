@@ -33,6 +33,8 @@ export function notificationMeta(n: Notification): Meta {
       return { icon: 'block' };
     case 'account_restored':
       return { icon: 'lock-open' };
+    case 'premium_started':
+      return { icon: 'workspace-premium', href: '/premium' as Href };
     default:
       return n.kind.startsWith('appeal_') ? { icon: 'gavel', href: '/settings/appeals' } : { icon: 'notifications-none', href: plan };
   }

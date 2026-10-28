@@ -26,6 +26,8 @@ export interface AnalyticsEventMap {
   user_blocked: { context: 'profile' | 'plan' | 'message' };
   sos_pressed: { plan_id: string; location_sent: boolean };
   rating_submitted: { plan_id: string; rated_count: number };
+  paywall_viewed: { source: string };
+  subscription_started: { product_id: string };
 }
 
 export type AnalyticsEventName = keyof AnalyticsEventMap;
@@ -50,6 +52,8 @@ const ALLOWED_KEYS: { [K in AnalyticsEventName]: readonly (keyof AnalyticsEventM
   user_blocked: ['context'],
   sos_pressed: ['plan_id', 'location_sent'],
   rating_submitted: ['plan_id', 'rated_count'],
+  paywall_viewed: ['source'],
+  subscription_started: ['product_id'],
 };
 
 export type SafeProps = Record<string, string | number | boolean>;

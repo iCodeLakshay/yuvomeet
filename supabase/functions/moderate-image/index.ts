@@ -11,7 +11,7 @@ const MAX_BYTES = 8 * 1024 * 1024;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 interface Body {
-  kind?: 'profile' | 'chat';
+  kind?: 'profile' | 'chat' | 'plan';
   path?: string;
   position?: number;
   conversationId?: string;
@@ -23,7 +23,7 @@ serve(async (req) => {
   await rateLimit(userId, 'moderate-image', 3_600, 40);
   const body = await readJson<Body>(req);
   const path = body.path ?? '';
-  if (!['profile', 'chat'].includes(body.kind ?? '') || !new RegExp(`^${userId}/[0-9a-f-]{36}\\.jpg$`).test(path)) {
+  if (!['profile', 'chat', 'plan'].includes(body.kind ?? '') || !new RegExp(`^${userId}/[0-9a-f-]{36}\\.jpg$`).test(path)) {
     throw new HttpError(400, 'BAD_REQUEST', 'Invalid upload.');
   }
   if (body.kind === 'chat' && !(UUID.test(body.conversationId ?? '') && UUID.test(body.messageId ?? ''))) {
@@ -49,7 +49,12 @@ serve(async (req) => {
   })) as string;
 
   const sha256 = await sha256Hex(image);
-  const mediaPath = body.kind === 'profile' ? `profiles/${userId}/${id}.jpg` : `chat/${body.conversationId}/${id}.jpg`;
+  const mediaPath =
+    body.kind === 'profile'
+      ? `profiles/${userId}/${id}.jpg`
+      : body.kind === 'plan'
+        ? `plans/${userId}/${id}.jpg`
+        : `chat/${body.conversationId}/${id}.jpg`;
 
   let labels: string[] = [];
   let topConfidence = 0;

@@ -62,4 +62,5 @@ export function startSpan(name: 'feed_first_page' | 'chat_delivery') {
   };
 }
 
-export const wrapRoot = Sentry.wrap;
+/** Sentry.wrap only when Sentry was initialised; otherwise it warns on every launch. */
+export const wrapRoot: typeof Sentry.wrap = env.sentryDsn ? Sentry.wrap : (root) => root as never;

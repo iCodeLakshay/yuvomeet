@@ -18,7 +18,7 @@ export interface SegmentedProps<T extends string> {
 
 function SegmentedInner<T extends string>({ items, value, onChange }: SegmentedProps<T>) {
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.strip} contentContainerStyle={styles.row}>
       {items.map((item) => {
         const active = item.value === value;
         return (
@@ -48,7 +48,9 @@ function SegmentedInner<T extends string>({ items, value, onChange }: SegmentedP
 export const Segmented = memo(SegmentedInner) as typeof SegmentedInner;
 
 const styles = StyleSheet.create({
-  row: { paddingHorizontal: gutter, gap: space.sm },
+  // A horizontal ScrollView in a flex column stretches to fill the height without this.
+  strip: { flexGrow: 0, flexShrink: 0 },
+  row: { paddingHorizontal: gutter, paddingVertical: space.xs, gap: space.sm, alignItems: 'center' },
   tab: {
     flexDirection: 'row',
     alignItems: 'center',

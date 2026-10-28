@@ -1,5 +1,4 @@
 import { EMERGENCY_HELPLINE } from '@yuvomeet/shared';
-import { router } from 'expo-router';
 import { Linking, StyleSheet, View } from 'react-native';
 import { callEmergency } from '../../src/features/safety/api';
 import { env } from '../../src/lib/env';
@@ -17,7 +16,7 @@ const RULES: { icon: IconName; title: string; body: string }[] = [
 /** Community rules (ON-4), safety help and support contact. */
 export default function Help() {
   return (
-    <Screen header={<Header title="Help & safety" />}>
+    <Screen header={<Header title="Help" />}>
       <Card style={styles.sos}>
         <ListRow icon="call" iconColor="danger" title={`Emergency: call ${EMERGENCY_HELPLINE}`} subtitle="Police, ambulance and women's helpline" onPress={callEmergency} />
       </Card>
@@ -37,7 +36,6 @@ export default function Help() {
       </View>
       <SectionHeader title="Support" small />
       <ListRow icon="mail-outline" title="Email support" subtitle={`${env.supportEmail} · replies within 24 hours`} onPress={() => Linking.openURL(`mailto:${env.supportEmail}`)} />
-      <ListRow icon="gavel" title="Appeal a decision" onPress={() => router.push('/appeal')} />
       <ListRow icon="policy" title="Privacy policy" onPress={() => Linking.openURL(`${env.siteUrl}/privacy`)} />
       <ListRow icon="description" title="Terms of use" onPress={() => Linking.openURL(`${env.siteUrl}/terms`)} />
     </Screen>

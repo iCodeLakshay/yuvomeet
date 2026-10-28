@@ -5,7 +5,7 @@ import { useMe } from '../../../../src/features/session/SessionProvider';
 import { formatPlanTime } from '../../../../src/lib/format';
 import { Avatar, Badge, Header, ListRow, Screen, SectionHeader } from '../../../../src/ui';
 
-/** Chat details: the plan, who is in the group, and per-member report / profile. */
+/** Group info (chat header "i"): the plan, who is in the group, and a way to get help. */
 export default function ChatMembers() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const me = useMe();
@@ -13,7 +13,7 @@ export default function ChatMembers() {
   const roster = useRoster(convo?.plan_id ?? '');
 
   return (
-    <Screen header={<Header title="Chat details" />}>
+    <Screen header={<Header title="Group info" />}>
       {convo ? (
         <ListRow
           icon="event"
@@ -32,15 +32,13 @@ export default function ChatMembers() {
           onPress={m.user_id === me.id ? undefined : () => router.push({ pathname: '/user/[id]', params: { id: m.user_id! } })}
         />
       ))}
-      <SectionHeader title="Safety" small />
+      <SectionHeader title="Help" small />
       <ListRow
         icon="sos"
         iconColor="danger"
-        title="SOS"
-        subtitle="Send your location to your trusted contact"
+        title="Get help"
         onPress={() => convo?.plan_id && router.push({ pathname: '/safety/sos', params: { planId: convo.plan_id } })}
       />
-      <ListRow icon="contact-phone" title="Trusted contact" onPress={() => router.push('/safety/contact')} />
     </Screen>
   );
 }

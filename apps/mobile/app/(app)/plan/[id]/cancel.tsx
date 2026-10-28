@@ -5,7 +5,7 @@ import { ScrollView, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCancelPlan, usePlan } from '../../../../src/features/plans/api';
 import { errorMessage } from '../../../../src/lib/errors';
-import { Button, Field, gutter, Notice, RadioRow, SheetHeader, space } from '../../../../src/ui';
+import { Button, confirm, Field, gutter, Notice, RadioRow, SheetHeader, space } from '../../../../src/ui';
 
 const REASONS = ['Something came up', 'Not enough people', 'Venue issue', 'Feeling unwell'] as const;
 const LATE_HOURS = 3;
@@ -21,11 +21,20 @@ export default function CancelSheet() {
   const [error, setError] = useState<string | null>(null);
   const late = plan ? Date.parse(plan.starts_at!) - Date.now() < LATE_HOURS * 3_600_000 : false;
 
-  const submit = () => {
+  const submit = async () => {
     const text = reason === 'Other' ? other.trim() : reason;
     const problem = checkText(text, 'Reason', 3, 200);
     setError(problem);
     if (problem) return;
+    const ok = await confirm({
+      title: 'Cancel this plan?',
+      message: 'Everyone who joined is told right away. This cannot be undone.',
+      confirmLabel: 'Cancel plan',
+      cancelLabel: 'Keep it',
+      icon: 'event-busy',
+      danger: true,
+    });
+    if (!ok) return;
     cancel.mutate(text, { onSuccess: () => router.dismissTo({ pathname: '/plan/[id]', params: { id } }), onError: (e) => setError(errorMessage(e)) });
   };
 

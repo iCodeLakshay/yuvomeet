@@ -3,6 +3,7 @@ import { FEED_PAGE_SIZE } from '@yuvomeet/shared';
 import * as Location from 'expo-location';
 import { AppError, unwrap, unwrapMaybe } from '../../lib/errors';
 import { callFunction } from '../../lib/functions';
+import { uploadForModeration } from '../../lib/media';
 import { qk, queryClient } from '../../lib/query';
 import { supabase, type Enums, type Views } from '../../lib/supabase';
 import { track } from '../../lib/telemetry';
@@ -31,22 +32,34 @@ function dayWindow(day: FeedFilters['day']): [string, string] {
 
 const istDay = (iso: string) => new Date(Date.parse(iso) + 5.5 * 3_600_000).toISOString().slice(0, 10);
 
-/** Architecture §Feed: hosts with 2+ late cancels in 30 days sort after others on the same day. */
-function demoteLateCancellers(rows: PlanCard[]): PlanCard[] {
+/**
+ * Architecture §Feed: within each day, Premium hosts' plans come first (boost) and hosts with
+ * 2+ late cancels in 30 days sort after everyone else.
+ */
+function rankWithinDay(rows: PlanCard[]): PlanCard[] {
   const out: PlanCard[] = [];
   let day = '';
+  let boosted: PlanCard[] = [];
+  let normal: PlanCard[] = [];
   let demoted: PlanCard[] = [];
+  const flush = () => {
+    out.push(...boosted, ...normal, ...demoted);
+    boosted = [];
+    normal = [];
+    demoted = [];
+  };
   for (const row of rows) {
     const d = istDay(row.starts_at!);
     if (d !== day) {
-      out.push(...demoted);
-      demoted = [];
+      flush();
       day = d;
     }
     if ((row.host_late_cancels_30d ?? 0) >= 2) demoted.push(row);
-    else out.push(row);
+    else if (row.host_boosted) boosted.push(row);
+    else normal.push(row);
   }
-  return [...out, ...demoted];
+  flush();
+  return out;
 }
 
 /** PL-2: city-scoped by RLS; keyset pagination on (starts_at, id); late cancellers sort last. */
@@ -73,7 +86,7 @@ export function useFeed(filters: FeedFilters) {
         q = q.or(`title.ilike.%${term}%,venue_name.ilike.%${term}%,venue_area_name.ilike.%${term}%`);
       }
       if (pageParam) q = q.or(`starts_at.gt.${pageParam.startsAt},and(starts_at.eq.${pageParam.startsAt},id.gt.${pageParam.id})`);
-      return demoteLateCancellers(unwrap(await q));
+      return rankWithinDay(unwrap(await q));
     },
     getNextPageParam: (last) => {
       if (last.length < FEED_PAGE_SIZE) return undefined;
@@ -147,17 +160,34 @@ export function useJoinRequests(planId: string) {
           .select('*')
           .eq('plan_id', planId)
           .order('low_priority')
+          .order('is_priority', { ascending: false })
           .order('requested_at'),
       ),
   });
 }
 
+export interface Caps {
+  joins_used: number;
+  joins_limit: number;
+  hosts_used: number;
+  hosts_limit: number;
+  entitlement: 'free' | 'plus' | 'premium';
+  entitlement_until: string | null;
+}
+
 export function useCaps() {
   return useQuery({
     queryKey: qk.caps,
-    queryFn: async () =>
-      unwrap(await supabase.rpc('my_caps')) as { joins_used: number; joins_limit: number; hosts_used: number; hosts_limit: number; entitlement: string },
+    queryFn: async () => unwrap(await supabase.rpc('my_caps')) as unknown as Caps,
   });
+}
+
+/** Paid passes lift the weekly join and host caps (enforced in request_join / create_plan). */
+export const isPaid = (caps: Pick<Caps, 'entitlement'> | undefined) => Boolean(caps && caps.entitlement !== 'free');
+
+/** PL-1: 1:1 plan banner, moderated before others can see it. */
+export function useUploadCover() {
+  return useMutation({ mutationFn: (uri: string) => uploadForModeration(uri, { kind: 'plan' }) });
 }
 
 const refreshPlans = (planId?: string) =>
@@ -178,6 +208,10 @@ export interface NewPlan {
   capacity: number;
   audience: PlanAudience;
   requiresApproval: boolean;
+  /** Uploaded banner (plan_covers id), attached after the plan is created. */
+  coverId?: string | null;
+  /** Price per person in paise; null for a free plan. */
+  pricePaise?: number | null;
 }
 
 export function useCreatePlan() {
@@ -196,6 +230,16 @@ export function useCreatePlan() {
           p_requires_approval: p.requiresApproval,
         }),
       );
+      if (p.pricePaise) {
+        const { error } = await supabase.rpc('set_plan_price', { p_plan_id: id, p_price_paise: p.pricePaise });
+        // A paid plan must never go out free: withdraw it and surface the reason.
+        if (error) {
+          await supabase.rpc('cancel_plan', { p_plan_id: id, p_reason: 'Price could not be set' });
+          unwrap({ data: null, error });
+        }
+      }
+      // The plan exists even if attaching the banner fails; the venue photo is the fallback.
+      if (p.coverId) await supabase.rpc('set_plan_cover', { p_plan_id: id, p_cover_id: p.coverId });
       track('plan_created', {
         plan_id: id,
         activity: p.activity,

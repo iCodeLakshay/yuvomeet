@@ -1,4 +1,4 @@
-import { memo, useState } from 'react';
+import { memo, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { formatTime } from '../../lib/format';
 import { Avatar, colors, Icon, Pressable, radii, RemoteImage, space, Text } from '../../ui';
@@ -10,19 +10,29 @@ export interface Sender {
   is_host: boolean | null;
 }
 
+export interface Anchor {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export interface MessageBubbleProps {
   message: Message;
   mine: boolean;
   sender?: Sender;
   /** First message of a run from the same sender: shows the avatar and name. */
   first: boolean;
-  onLongPress: (message: Message) => void;
+  onLongPress: (message: Message, anchor: Anchor) => void;
   onRetry: (message: Message) => void;
+  onOpenImage: (path: string) => void;
+  selecting: boolean;
+  selected: boolean;
+  onToggleSelect: (message: Message) => void;
 }
 
-/** Chat photos stay blurred until tapped (CH-2): moderation is automated, consent is personal. */
-function Photo({ path, pending }: { path: string | null; pending: boolean }) {
-  const [revealed, setRevealed] = useState(false);
+/** Chat photos stay blurred until tapped (CH-2); a second tap opens them full screen. */
+function Photo({ path, pending, revealed }: { path: string | null; pending: boolean; revealed: boolean }) {
   if (pending || !path) {
     return (
       <View style={[styles.photo, styles.photoPending]}>
@@ -34,7 +44,7 @@ function Photo({ path, pending }: { path: string | null; pending: boolean }) {
     );
   }
   return (
-    <Pressable onPress={() => setRevealed(true)} disabled={revealed} accessibilityLabel={revealed ? 'Photo' : 'Tap to view photo'} pressScale={0.98}>
+    <View>
       <RemoteImage path={path} style={styles.photo} blurRadius={revealed ? 0 : 40} />
       {revealed ? null : (
         <View style={styles.reveal}>
@@ -44,16 +54,49 @@ function Photo({ path, pending }: { path: string | null; pending: boolean }) {
           </Text>
         </View>
       )}
-    </Pressable>
+    </View>
   );
 }
 
-export const MessageBubble = memo(function MessageBubble({ message, mine, sender, first, onLongPress, onRetry }: MessageBubbleProps) {
+export const MessageBubble = memo(function MessageBubble({
+  message,
+  mine,
+  sender,
+  first,
+  onLongPress,
+  onRetry,
+  onOpenImage,
+  selecting,
+  selected,
+  onToggleSelect,
+}: MessageBubbleProps) {
   const isPhoto = Boolean(message.image_path) || message.image_status === 'pending';
   const name = sender?.first_name ?? (message.sender_id ? 'Member' : 'Former member');
+  const [revealed, setRevealed] = useState(false);
+  const bubbleRef = useRef<View>(null);
 
-  return (
-    <View style={[styles.row, mine ? styles.rowMine : null, first ? styles.rowFirst : null]}>
+  const onPress = () => {
+    if (selecting) return onToggleSelect(message);
+    if (message.failed) return onRetry(message);
+    if (isPhoto && message.image_path && message.image_status !== 'pending') {
+      if (!revealed) setRevealed(true);
+      else onOpenImage(message.image_path);
+    }
+  };
+
+  const longPress = () => {
+    if (selecting) return onToggleSelect(message);
+    bubbleRef.current?.measureInWindow((x, y, width, height) => onLongPress(message, { x, y, width, height }));
+  };
+
+  const rowStyle = [styles.row, mine ? styles.rowMine : null, first ? styles.rowFirst : null, selected ? styles.rowSelected : null];
+  const content = (
+    <>
+      {selecting ? (
+        <View style={styles.check}>
+          <Icon name={selected ? 'check-circle' : 'radio-button-unchecked'} size={22} color={selected ? 'accent' : 'textSubtle'} />
+        </View>
+      ) : null}
       {!mine ? (
         <View style={styles.avatarSlot}>
           {first ? (
@@ -80,37 +123,50 @@ export const MessageBubble = memo(function MessageBubble({ message, mine, sender
             {mine && !message.pending ? <Icon name="done-all" size={14} color="textSubtle" /> : null}
           </View>
         ) : null}
-        <Pressable
-          onLongPress={() => onLongPress(message)}
-          onPress={message.failed ? () => onRetry(message) : undefined}
-          delayLongPress={300}
-          pressScale={0.98}
-          accessibilityLabel={`${mine ? 'You' : name}: ${isPhoto ? 'photo' : message.body}`}
-          accessibilityHint="Long press for options"
-          style={[styles.bubble, mine ? styles.mine : styles.theirs, isPhoto ? styles.bubblePhoto : null, message.pending ? styles.pending : null]}
-        >
-          {isPhoto ? (
-            <Photo path={message.image_path} pending={message.image_status === 'pending'} />
-          ) : (
-            <Text variant="body" color={mine ? 'onPrimary' : 'text'}>
-              {message.body}
-            </Text>
-          )}
-        </Pressable>
+        <View ref={bubbleRef} collapsable={false}>
+          <Pressable
+            onLongPress={longPress}
+            onPress={onPress}
+            delayLongPress={300}
+            pressScale={0.98}
+            accessibilityLabel={`${mine ? 'You' : name}: ${isPhoto ? 'photo' : message.body}`}
+            accessibilityHint={isPhoto && revealed ? 'Tap to open full screen. Long press for options' : 'Long press for options'}
+            style={[styles.bubble, mine ? styles.mine : styles.theirs, isPhoto ? styles.bubblePhoto : null, message.pending ? styles.pending : null]}
+          >
+            {isPhoto ? (
+              <Photo path={message.image_path} pending={message.image_status === 'pending'} revealed={revealed} />
+            ) : (
+              <Text variant="body" color={mine ? 'onPrimary' : 'text'}>
+                {message.body}
+              </Text>
+            )}
+          </Pressable>
+        </View>
         {message.failed ? (
           <Text variant="caption" color="danger">
-            Not sent: {message.failed} Tap to retry, long press to discard.
+            Not sent: {message.failed} Tap to retry, long press for options.
           </Text>
         ) : null}
       </View>
-    </View>
+    </>
+  );
+
+  // In select mode the whole row toggles; otherwise only the bubble is interactive.
+  return selecting ? (
+    <Pressable onPress={() => onToggleSelect(message)} pressScale={1} accessibilityState={{ selected }} accessibilityLabel={selected ? 'Selected message' : 'Message'} style={rowStyle}>
+      {content}
+    </Pressable>
+  ) : (
+    <View style={rowStyle}>{content}</View>
   );
 });
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', gap: space.sm, marginTop: space.xs },
+  row: { flexDirection: 'row', gap: space.sm, marginTop: space.xs, borderRadius: radii.md },
   rowMine: { justifyContent: 'flex-end' },
   rowFirst: { marginTop: space.lg },
+  rowSelected: { backgroundColor: colors.accentSoft },
+  check: { justifyContent: 'center', marginRight: 'auto' },
   avatarSlot: { width: 36 },
   hostTag: { position: 'absolute', top: 28, left: 2, paddingHorizontal: 3, borderRadius: 4, backgroundColor: colors.primary },
   hostText: { fontSize: 8, lineHeight: 11 },

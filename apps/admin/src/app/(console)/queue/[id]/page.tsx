@@ -60,14 +60,15 @@ async function Thread({ db, messageId, itemId }: { db: Db; messageId: string; it
 async function Context({ db, item }: { db: Db; item: { id: string; subject: string; subject_id: string; user_id: string } }): Promise<ReactNode> {
   switch (item.subject) {
     case 'photo': {
-      const [{ data: photo }, { data: msg }] = await Promise.all([
+      const [{ data: photo }, { data: msg }, { data: cover }] = await Promise.all([
         db.from('profile_photos').select('*').eq('id', item.subject_id).maybeSingle(),
         db.from('messages').select('id, image_path, conversation_id').eq('id', item.subject_id).maybeSingle(),
+        db.from('plan_covers').select('id, path').eq('id', item.subject_id).maybeSingle(),
       ]);
-      const path = photo?.path ?? msg?.image_path;
+      const path = photo?.path ?? msg?.image_path ?? cover?.path;
       const urls = await signMedia(db, [path]);
       return (
-        <Card title={photo ? 'Profile photo' : 'Chat photo'}>
+        <Card title={photo ? 'Profile photo' : cover ? 'Plan banner' : 'Chat photo'}>
           {path && urls.get(path) ? (
             <div className="thumbs">
               {/* eslint-disable-next-line @next/next/no-img-element */}

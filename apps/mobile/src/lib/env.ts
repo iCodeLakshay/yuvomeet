@@ -2,7 +2,8 @@
 export const env = {
   appEnv: process.env.EXPO_PUBLIC_APP_ENV ?? 'development',
   supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL ?? '',
-  supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '',
+  // Publishable key (sb_publishable_…) or legacy anon key; both are safe to ship.
+  supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_KEY ?? process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '',
   posthogKey: process.env.EXPO_PUBLIC_POSTHOG_KEY ?? '',
   posthogHost: process.env.EXPO_PUBLIC_POSTHOG_HOST ?? 'https://eu.i.posthog.com',
   sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN ?? '',

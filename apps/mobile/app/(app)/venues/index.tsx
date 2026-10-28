@@ -24,7 +24,7 @@ export default function Venues() {
         renderItem={renderItem}
         keyExtractor={(v) => v.id}
         ItemSeparatorComponent={Separator}
-        ListHeaderComponent={<Notice text="Each venue is public, busy and checked by our team. Partner venues know Yuvomeet groups are coming." />}
+        ListHeaderComponent={<Notice text="Every venue is checked by our team." icon="verified" />}
         ListHeaderComponentStyle={styles.header}
         contentContainerStyle={{ paddingHorizontal: gutter, paddingBottom: insets.bottom + space.xxl }}
         ListEmptyComponent={venues.isLoading ? null : <EmptyState icon="storefront" title="No venues yet" />}
