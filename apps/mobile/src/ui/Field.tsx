@@ -3,7 +3,7 @@ import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 import { Icon, type IconName } from './Icon';
 import { Pressable } from './Pressable';
 import { Text } from './Text';
-import { colors, fonts, radii, space } from './theme';
+import { colors, fonts, radii, space, type ColorToken } from './theme';
 
 export interface FieldProps extends Omit<TextInputProps, 'style'> {
   label: string;
@@ -15,17 +15,18 @@ export interface FieldProps extends Omit<TextInputProps, 'style'> {
   /** Renders as a tappable row (pickers) instead of a text input. */
   onPress?: () => void;
   trailingIcon?: IconName;
+  trailingColor?: ColorToken;
 }
 
 /** Stitch onboarding field: icon, small label above the value, rounded surface card. */
 export const Field = memo(
   forwardRef<TextInput, FieldProps>(function Field(
-    { label, icon, error, counter, onClear, onPress, trailingIcon, value, maxLength, multiline, ...rest },
+    { label, icon, error, counter, onClear, onPress, trailingIcon, trailingColor = 'textMuted', value, maxLength, multiline, ...rest },
     ref,
   ) {
     const body = (
       <View style={[styles.box, multiline ? styles.multi : null, error ? styles.errorBox : null]}>
-        {icon ? <Icon name={icon} size={22} color="textMuted" /> : null}
+        {icon ? <Icon name={icon} size={24} color="textMuted" /> : null}
         <View style={styles.flex}>
           <Text variant="caption" color="textSubtle">
             {label}
@@ -54,7 +55,7 @@ export const Field = memo(
             <Icon name="close" size={20} color="textMuted" />
           </Pressable>
         ) : null}
-        {trailingIcon ? <Icon name={trailingIcon} size={22} color="textMuted" /> : null}
+        {trailingIcon ? <Icon name={trailingIcon} size={24} color={trailingColor} /> : null}
       </View>
     );
 

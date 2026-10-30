@@ -32,7 +32,7 @@ export const Chip = memo(function Chip({ label, selected, onPress, icon, kind = 
         grow ? styles.grow : null,
       ]}
     >
-      {icon ? <Icon name={icon} size={18} color={selected && !choice ? 'onPrimary' : 'textMuted'} /> : null}
+      {icon ? <Icon name={icon} size={22} color={selected && !choice ? 'onPrimary' : 'textMuted'} /> : null}
       <Text
         variant="smallStrong"
         color={selected ? (choice ? 'text' : 'onPrimary') : 'textMuted'}
@@ -41,7 +41,7 @@ export const Chip = memo(function Chip({ label, selected, onPress, icon, kind = 
       >
         {label}
       </Text>
-      {choice && selected ? <Icon name="check-circle" size={18} color="accent" /> : null}
+      {choice && selected ? <Icon name="check-circle" size={22} color="brand" /> : null}
     </Pressable>
   );
 });
@@ -50,7 +50,7 @@ const styles = StyleSheet.create({
   base: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: space.sm,
+    gap: space.xs + 2,
     minHeight: 40,
     paddingHorizontal: space.lg,
     borderRadius: radii.pill,

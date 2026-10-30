@@ -1,15 +1,9 @@
-import createIconSet from '@expo/vector-icons/createIconSet';
-import glyphMap from '@expo/vector-icons/build/vendor/react-native-vector-icons/glyphmaps/MaterialIcons.json';
 import { memo } from 'react';
+import { View } from 'react-native';
+import { GLASS, type IconName } from './glassIcons';
 import { colors, type ColorToken } from './theme';
 
-/**
- * Material Icons, the same set Stitch uses. The font is embedded at build time by the
- * expo-font config plugin, so icons render on first frame without async loading.
- */
-const MaterialIcons = createIconSet(glyphMap, 'MaterialIcons', 'MaterialIcons.ttf');
-
-export type IconName = keyof typeof glyphMap;
+export type { IconName };
 
 export interface IconProps {
   name: IconName;
@@ -17,6 +11,24 @@ export interface IconProps {
   color?: ColorToken;
 }
 
-export const Icon = memo(function Icon({ name, size = 20, color = 'text' }: IconProps) {
-  return <MaterialIcons name={name} size={size} color={colors[color]} accessibilityElementsHidden importantForAccessibility="no" />;
+/**
+ * The Glass artwork only fills about 73% of its 24-unit box, which left a wide empty margin around
+ * every icon. The glyph is drawn this much larger inside the same `size` box, so the artwork reads
+ * bigger and nothing around it moves.
+ */
+const FILL = 1.25;
+
+/**
+ * Every icon in the app is a Glass icon from @thesvg/ui-react-native. Names stay the Material
+ * names the Stitch frames and the database (activities, interests) already use; glassIcons.ts
+ * maps each one to its Glass equivalent. A name with no mapping renders a neutral Glass icon
+ * rather than failing, so a new database value can never break a screen.
+ */
+export const Icon = memo(function Icon({ name, size = 24, color = 'text' }: IconProps) {
+  const Glyph = (GLASS as Record<string, (typeof GLASS)[IconName]>)[name] ?? GLASS.groups;
+  return (
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      <Glyph size={size * FILL} color={colors[color]} accessibilityElementsHidden importantForAccessibility="no" />
+    </View>
+  );
 });

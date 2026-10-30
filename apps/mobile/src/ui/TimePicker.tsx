@@ -1,155 +1,122 @@
-import { memo, useState, type ReactNode } from 'react';
-import { StyleSheet, View } from 'react-native';
+import DateTimePicker, { DateTimePickerAndroid, type DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { memo, useEffect, useRef, useState } from 'react';
+import { Platform, StyleSheet, View } from 'react-native';
 import { Button } from './Button';
-import { Pressable } from './Pressable';
+import { Notice } from './Notice';
 import { Sheet } from './Sheet';
-import { Text } from './Text';
-import { colors, radii, space } from './theme';
 
-const MINUTES = [0, 15, 30, 45];
-const GROUPS: { label: string; hours: number[] }[] = [
-  { label: 'Morning', hours: [6, 7, 8, 9, 10, 11] },
-  { label: 'Afternoon', hours: [12, 13, 14, 15, 16, 17] },
-  { label: 'Evening', hours: [18, 19, 20, 21, 22, 23] },
-];
-
-const hourLabel = (h: number) => `${((h + 11) % 12) + 1} ${h < 12 ? 'AM' : 'PM'}`;
+const toDate = (minutes: number) => {
+  const d = new Date();
+  d.setHours(Math.floor(minutes / 60), minutes % 60, 0, 0);
+  return d;
+};
+const toMinutes = (d: Date) => d.getHours() * 60 + d.getMinutes();
+const label = (minutes: number) => `${((Math.floor(minutes / 60) + 11) % 12) + 1}:${String(minutes % 60).padStart(2, '0')} ${minutes < 720 ? 'AM' : 'PM'}`;
 
 export interface TimePickerProps {
   visible: boolean;
   onClose: () => void;
   /** Minutes after midnight, or null when unset. */
   value: number | null;
+  /** Called only with a time that passed `validate`. */
   onChange: (minutes: number) => void;
-  /** Whether a start time (minutes after midnight) can be picked. */
-  isAllowed: (minutes: number) => boolean;
+  /** Why a time cannot be used (shown to the host), or null when it is fine. */
+  validate: (minutes: number) => string | null;
+  /** The time the clock opens on when nothing is picked yet; null when no time is left today. */
+  suggested: number | null;
+  /** Called when the host confirms a time that fails `validate` (Android closes the dialog first). */
+  onInvalid?: (message: string) => void;
   title?: string;
-  /** Extra controls under the clock (e.g. duration). */
-  children?: ReactNode;
   emptyText?: string;
 }
 
-/** Hour grid plus minute segments: every time of day visible at once, invalid ones dimmed. */
-export const TimePicker = memo(function TimePicker({ visible, onClose, value, onChange, isAllowed, title = 'Pick a time', children, emptyText }: TimePickerProps) {
-  const [hour, setHour] = useState<number | null>(value != null ? Math.floor(value / 60) : null);
-  const [minute, setMinute] = useState<number>(value != null ? value % 60 : 0);
-  const [lastValue, setLastValue] = useState(value);
-  if (lastValue !== value) {
-    setLastValue(value);
-    setHour(value != null ? Math.floor(value / 60) : null);
-    setMinute(value != null ? value % 60 : 0);
+/**
+ * Clock-style start time. Android opens the system Material clock dialog; iOS shows the system
+ * time wheel in a sheet. Both are the platform's own controls, so keyboard entry, 12/24 hour
+ * handling and accessibility come from the OS.
+ */
+export const TimePicker = memo(function TimePicker(props: TimePickerProps) {
+  return Platform.OS === 'android' ? <AndroidClock {...props} /> : <IosWheel {...props} />;
+});
+
+function AndroidClock({ visible, onClose, value, onChange, validate, suggested, onInvalid, emptyText }: TimePickerProps) {
+  // The dialog is imperative; keep the latest callbacks without re-opening it on every render.
+  const latest = useRef({ onClose, value, onChange, validate, suggested, onInvalid, emptyText });
+  latest.current = { onClose, value, onChange, validate, suggested, onInvalid, emptyText };
+
+  useEffect(() => {
+    if (!visible) return;
+    const { value: current, suggested: start } = latest.current;
+    const initial = current ?? start;
+    if (initial == null) {
+      latest.current.onInvalid?.(latest.current.emptyText ?? 'No start times are left on this day.');
+      latest.current.onClose();
+      return;
+    }
+    DateTimePickerAndroid.open({
+      value: toDate(initial),
+      mode: 'time',
+      display: 'clock',
+      is24Hour: false,
+      onChange: (event: DateTimePickerEvent, date?: Date) => {
+        const l = latest.current;
+        l.onClose();
+        if (event.type !== 'set' || !date) return;
+        const minutes = toMinutes(date);
+        const problem = l.validate(minutes);
+        if (problem) l.onInvalid?.(problem);
+        else l.onChange(minutes);
+      },
+    });
+    return () => {
+      void DateTimePickerAndroid.dismiss('time');
+    };
+  }, [visible]);
+
+  return null;
+}
+
+function IosWheel({ visible, onClose, value, onChange, validate, suggested, title = 'Start time', emptyText }: TimePickerProps) {
+  const [draft, setDraft] = useState<number | null>(value ?? suggested);
+  const [seen, setSeen] = useState(visible);
+  if (visible !== seen) {
+    setSeen(visible);
+    if (visible) setDraft(value ?? suggested);
   }
-
-  const hourOpen = (h: number) => MINUTES.some((m) => isAllowed(h * 60 + m));
-  const anyOpen = GROUPS.some((g) => g.hours.some(hourOpen));
-  const picked = hour != null && isAllowed(hour * 60 + minute) ? hour * 60 + minute : null;
-
-  const chooseHour = (h: number) => {
-    setHour(h);
-    if (!isAllowed(h * 60 + minute)) setMinute(MINUTES.find((m) => isAllowed(h * 60 + m)) ?? 0);
-  };
+  const problem = draft == null ? (emptyText ?? 'No start times are left on this day.') : validate(draft);
 
   return (
     <Sheet
       visible={visible}
       onClose={onClose}
       title={title}
-      subtitle={picked != null ? `Starts at ${hourLabel(Math.floor(picked / 60)).replace(' ', `:${String(picked % 60).padStart(2, '0')} `)}` : undefined}
+      subtitle={draft != null && !problem ? `Starts at ${label(draft)}` : undefined}
       footer={
         <Button
           label="Done"
-          disabled={picked == null}
+          disabled={draft == null || Boolean(problem)}
           onPress={() => {
-            if (picked != null) onChange(picked);
+            if (draft != null && !problem) onChange(draft);
             onClose();
           }}
         />
       }
     >
-      {anyOpen ? (
-        <View style={styles.groups}>
-          {GROUPS.map((g) => (
-            <View key={g.label} style={styles.group}>
-              <Text variant="label" color="textSubtle">
-                {g.label}
-              </Text>
-              <View style={styles.row}>
-                {g.hours.map((h) => {
-                  const open = hourOpen(h);
-                  const on = hour === h;
-                  return (
-                    <Pressable
-                      key={h}
-                      onPress={() => chooseHour(h)}
-                      disabled={!open}
-                      pressScale={0.94}
-                      accessibilityLabel={hourLabel(h)}
-                      accessibilityState={{ selected: on, disabled: !open }}
-                      style={[styles.hour, on ? styles.on : null]}
-                    >
-                      <Text variant="smallStrong" color={on ? 'onPrimary' : open ? 'text' : 'textSubtle'}>
-                        {hourLabel(h)}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </View>
-          ))}
-          <View style={styles.group}>
-            <Text variant="label" color="textSubtle">
-              Minutes
-            </Text>
-            <View style={styles.segment}>
-              {MINUTES.map((m) => {
-                const open = hour != null && isAllowed(hour * 60 + m);
-                const on = minute === m && hour != null;
-                return (
-                  <Pressable
-                    key={m}
-                    onPress={() => setMinute(m)}
-                    disabled={!open}
-                    pressScale={0.96}
-                    accessibilityLabel={`${m} minutes`}
-                    accessibilityState={{ selected: on, disabled: !open }}
-                    style={[styles.minute, on ? styles.minuteOn : null]}
-                  >
-                    <Text variant="smallStrong" color={on ? 'text' : open ? 'textMuted' : 'textSubtle'}>
-                      :{String(m).padStart(2, '0')}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-        </View>
-      ) : (
-        <Text variant="small" color="textSubtle">
-          {emptyText ?? 'No times left on this day.'}
-        </Text>
-      )}
-      {children}
+      <View style={styles.wheel}>
+        {draft != null ? (
+          <DateTimePicker
+            value={toDate(draft)}
+            mode="time"
+            display="spinner"
+            themeVariant="dark"
+            minuteInterval={5}
+            onChange={(_event, date) => date && setDraft(toMinutes(date))}
+          />
+        ) : null}
+      </View>
+      {problem ? <Notice tone="warning" text={problem} /> : null}
     </Sheet>
   );
-});
+}
 
-const styles = StyleSheet.create({
-  groups: { gap: space.md },
-  group: { gap: space.sm },
-  row: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  hour: {
-    width: '31%',
-    flexGrow: 1,
-    minHeight: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radii.md,
-    backgroundColor: colors.surface2,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  on: { backgroundColor: colors.primary, borderColor: colors.primary },
-  segment: { flexDirection: 'row', padding: 4, gap: 4, borderRadius: radii.pill, backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.border },
-  minute: { flex: 1, minHeight: 36, alignItems: 'center', justifyContent: 'center', borderRadius: radii.pill },
-  minuteOn: { backgroundColor: colors.surface4 },
-});
+const styles = StyleSheet.create({ wheel: { alignItems: 'center' } });

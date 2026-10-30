@@ -29,7 +29,7 @@ export const Badge = memo(function Badge({ label, tone = 'neutral', icon, dot }:
   return (
     <View style={[styles.base, { backgroundColor: t.bg, borderColor: t.border }]}>
       {dot ? <View style={[styles.dot, { backgroundColor: colors[t.text] }]} /> : null}
-      {icon ? <Icon name={icon} size={14} color={t.text} /> : null}
+      {icon ? <Icon name={icon} size={16} color={t.text} /> : null}
       <Text variant="caption" color={t.text} numberOfLines={1}>
         {label}
       </Text>
@@ -42,7 +42,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    gap: space.xs,
+    gap: 3,
     paddingHorizontal: space.md,
     paddingVertical: 5,
     borderRadius: radii.pill,

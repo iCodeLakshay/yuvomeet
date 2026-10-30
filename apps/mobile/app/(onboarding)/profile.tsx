@@ -17,13 +17,14 @@ const GENDERS: { value: Enums<'gender'>; label: string }[] = [
 ];
 
 /**
- * Stitch "Let's get to know you". Full name and date of birth from the frame are reduced to
- * first name and nothing: birth year comes only from the ID check (S-39).
+ * Stitch "Let's get to know you". Full name is reduced to first name, and the date of birth to an
+ * age in years. The age is self-declared here; the ID check (S-39) replaces it with the verified value.
  */
 export default function ProfileBasics() {
   const me = useMe();
   const save = useSaveProfile();
   const [firstName, setFirstName] = useState<string>();
+  const [ageText, setAgeText] = useState<string>();
   const [gender, setGender] = useState<Enums<'gender'> | null>();
   const [area, setArea] = useState<string>();
   const [collegeId, setCollegeId] = useState<string | null>();
@@ -34,12 +35,17 @@ export default function ProfileBasics() {
   const chosenArea = area ?? me.area_name;
   const college = collegeId === undefined ? me.college_id : collegeId;
   const nameError = name ? checkText(name, 'First name', 2, 30) : null;
+  // Pre-filled when they come back to this step; the ID check replaces it with the verified value later.
+  const age = Number(ageText ?? (me.birth_year ? new Date().getFullYear() - me.birth_year : ''));
+  const ageValid = Number.isInteger(age) && age >= 18 && age <= 99;
+  const ageShown = ageText ?? (me.birth_year ? String(new Date().getFullYear() - me.birth_year) : '');
+  const ageError = ageShown && !ageValid ? (age < 18 ? 'Yuvomeet is for members 18 and older.' : 'Enter your age in years.') : null;
 
   const submit = async () => {
     const cell = areaCell(chosenArea);
-    if (!cell || !chosenGender) return;
+    if (!cell || !chosenGender || !ageValid) return;
     try {
-      await save.mutateAsync({ firstName: name.trim(), gender: chosenGender, area: { name: chosenArea, cell }, collegeId: college });
+      await save.mutateAsync({ firstName: name.trim(), age, gender: chosenGender, area: { name: chosenArea, cell }, collegeId: college });
       router.push('/photos');
     } catch (e) {
       setError(errorMessage(e));
@@ -54,7 +60,7 @@ export default function ProfileBasics() {
       cta="Continue"
       onCta={submit}
       busy={save.isPending}
-      ctaDisabled={!name || Boolean(nameError) || !chosenGender || !chosenArea}
+      ctaDisabled={!name || Boolean(nameError) || !ageValid || !chosenGender || !chosenArea}
       footerNote={
         <View style={styles.note}>
           <Icon name="lock-outline" size={16} color="textSubtle" />
@@ -75,6 +81,17 @@ export default function ProfileBasics() {
         autoComplete="given-name"
         placeholder="Riya"
         error={nameError}
+      />
+
+      <Field
+        label="Age"
+        icon="calendar-today"
+        value={ageShown}
+        onChangeText={(t) => setAgeText(t.replace(/\D/g, '').slice(0, 2))}
+        keyboardType="number-pad"
+        maxLength={2}
+        placeholder="21"
+        error={ageError}
       />
 
       <SectionHeader title="Gender" small />

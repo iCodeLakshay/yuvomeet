@@ -19,6 +19,9 @@ export const colors = {
   onPrimary: '#121318',
   accent: '#EAB308',
   accentSoft: 'rgba(234, 179, 8, 0.14)',
+  /** The one icon accent: tab bar, bell, selections, verified badge. Secondary icons stay textMuted / textSubtle. */
+  brand: '#38BDF8',
+  brandSoft: 'rgba(56, 189, 248, 0.14)',
   success: '#34D399',
   successBg: 'rgba(16, 185, 129, 0.14)',
   successBorder: 'rgba(16, 185, 129, 0.35)',
@@ -27,6 +30,10 @@ export const colors = {
   danger: '#FFB4AB',
   dangerBg: 'rgba(147, 0, 10, 0.35)',
   sos: '#EF4444',
+  /** Frosted-glass dock: body tint, bright rim, and the selected tab's bubble. */
+  glassTint: 'rgba(255, 255, 255, 0.06)',
+  glassEdge: 'rgba(255, 255, 255, 0.28)',
+  glassActive: 'rgba(255, 255, 255, 0.16)',
   scrim: 'rgba(13, 14, 19, 0.72)',
   overlay: 'rgba(18, 19, 24, 0.55)',
 } as const;
@@ -61,6 +68,8 @@ export const type = {
   caption: { fontFamily: fonts.medium, fontSize: 12, lineHeight: 16 },
   label: { fontFamily: fonts.bold, fontSize: 11, lineHeight: 14, letterSpacing: 0.8, textTransform: 'uppercase' },
   button: { fontFamily: fonts.bold, fontSize: 16, lineHeight: 20 },
+  /** Secondary actions inside cards: quieter than the card's title and detail lines. */
+  buttonCompact: { fontFamily: fonts.semibold, fontSize: 14, lineHeight: 18 },
 } as const;
 
 export type TypeVariant = keyof typeof type;

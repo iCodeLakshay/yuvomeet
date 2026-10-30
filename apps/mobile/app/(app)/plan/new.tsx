@@ -14,12 +14,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { isPaid, useCaps, useCreatePlan, useUploadCover, useVenues, venueCover, type PlanAudience } from '../../../src/features/plans/api';
 import { PlanCover } from '../../../src/features/plans/PlanCover';
-import { atMinutes, dayLabel, isStartAllowed, MAX_DAYS_AHEAD, minutesLabel, todayKey } from '../../../src/features/plans/schedule';
+import { atMinutes, dayLabel, isStartAllowed, MAX_DAYS_AHEAD, minutesLabel, startProblem, suggestStart, todayKey } from '../../../src/features/plans/schedule';
 import { pickedVenue } from '../../../src/features/plans/stores';
 import { useActivityMeta } from '../../../src/features/plans/usePlanMeta';
 import { useLookups } from '../../../src/features/profile/api';
 import { isVerified, useMe } from '../../../src/features/session/SessionProvider';
 import { errorMessage } from '../../../src/lib/errors';
+import { PAYWALL_ENABLED } from '../../../src/lib/flags';
 import { pickImage } from '../../../src/lib/media';
 import { formatRange } from '../../../src/lib/format';
 import {
@@ -46,6 +47,7 @@ import {
   StepProgress,
   Text,
   TimePicker,
+  toast,
   Toggle,
   type IconName,
 } from '../../../src/ui';
@@ -122,7 +124,7 @@ export default function CreatePlan() {
 
   const next = () => {
     const problem =
-      (!activity && 'Pick a category.') ||
+      (!activity && 'Pick an activity.') ||
       checkText(title, 'Title', 4, 80) ||
       (!startsAt && 'Pick a start time.') ||
       (!venue && 'Pick a public meeting point.') ||
@@ -161,7 +163,7 @@ export default function CreatePlan() {
         onSuccess: (id) => router.replace({ pathname: '/plan/[id]', params: { id } }),
         onError: (e) => {
           setError(errorMessage(e));
-          if ((e as { code?: string }).code === 'CAP_REACHED') router.push({ pathname: '/premium', params: { source: 'host_cap' } });
+          if (PAYWALL_ENABLED && (e as { code?: string }).code === 'CAP_REACHED') router.push({ pathname: '/premium', params: { source: 'host_cap' } });
         },
       },
     );
@@ -170,7 +172,7 @@ export default function CreatePlan() {
   const chooseCover = async () => {
     setCoverError(null);
     try {
-      const uri = await pickImage('library', true);
+      const uri = await pickImage('library', true, [16, 9]);
       if (!uri) return;
       const res = await uploadCover.mutateAsync(uri);
       if (res.status === 'rejected') {
@@ -202,7 +204,7 @@ export default function CreatePlan() {
     const a = meta(activity);
     return (
       <Screen header={header} footer={<Button label="Publish Plan" trailingIcon="arrow-forward" loading={create.isPending} onPress={publish} />}>
-        <SectionHeader title="Plan banner" small meta="1:1 · optional" />
+        <SectionHeader title="Plan banner" small meta="16:9 · optional" />
         <View style={styles.bannerRow}>
           <Pressable onPress={chooseCover} disabled={uploadCover.isPending} accessibilityLabel={cover ? 'Change banner' : 'Upload banner'} pressScale={0.97} style={styles.banner}>
             {cover ? (
@@ -219,7 +221,7 @@ export default function CreatePlan() {
             ) : null}
           </Pressable>
           <View style={styles.flex}>
-            <Text variant="bodyStrong">{cover ? 'Banner added' : 'Add a square banner'}</Text>
+            <Text variant="bodyStrong">{cover ? 'Banner added' : 'Add a wide banner'}</Text>
             <Text variant="caption" color="textSubtle">
               {cover?.status === 'pending'
                 ? 'Shows to others once our quick check passes.'
@@ -264,6 +266,8 @@ export default function CreatePlan() {
           counter
         />
 
+        {PAYWALL_ENABLED ? (
+          <>
         <SectionHeader title="Entry" small />
         <Card>
           <Toggle
@@ -313,6 +317,8 @@ export default function CreatePlan() {
             </View>
           ) : null}
         </Card>
+          </>
+        ) : null}
 
         <SectionHeader title="Who can join" small />
         <View style={styles.stack}>
@@ -343,7 +349,7 @@ export default function CreatePlan() {
 
   return (
     <Screen header={header} footer={<Button label="Preview & Publish Plan" trailingIcon="arrow-forward" onPress={next} />}>
-      <SectionHeader title="Select category" small meta="Tap to choose" />
+      <SectionHeader title="Select activity" small meta="Tap to choose" />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.bleed} contentContainerStyle={styles.chipRow}>
         {(lookups.data?.activities ?? []).map((a) => (
           <Chip key={a.slug} label={a.label} icon={a.icon as IconName} selected={activity === a.slug} onPress={() => setActivity(a.slug)} />
@@ -369,22 +375,26 @@ export default function CreatePlan() {
         visible={open === 'time'}
         onClose={() => setOpen(null)}
         value={start}
-        onChange={setStart}
-        isAllowed={allowed}
+        onChange={(m) => {
+          setError(null);
+          setStart(m);
+        }}
+        validate={(m) => startProblem(dayKey, m, duration, Date.now(), late)}
+        suggested={suggestStart(dayKey, duration, Date.now(), late)}
+        onInvalid={(message) => toast.warning(message)}
         title={`Start time · ${day.label}, ${day.sub}`}
-        emptyText="No start times left on this day. Pick another date."
-      >
-        <View style={styles.group}>
-          <Text variant="label" color="textSubtle">
-            Duration
-          </Text>
-          <View style={styles.chipWrap}>
-            {DURATIONS.map((d) => (
-              <Chip key={d} label={`${d / 60} hr${d > 60 ? 's' : ''}`} selected={duration === d} onPress={() => setDuration(d)} />
-            ))}
-          </View>
+        emptyText="No start times left on this day. Pick another date or a shorter duration."
+      />
+      <View style={[styles.group, styles.durations]}>
+        <Text variant="label" color="textSubtle">
+          Duration
+        </Text>
+        <View style={styles.chipWrap}>
+          {DURATIONS.map((d) => (
+            <Chip key={d} label={`${d / 60} hr${d > 60 ? 's' : ''}`} selected={duration === d} onPress={() => setDuration(d)} />
+          ))}
         </View>
-      </TimePicker>
+      </View>
 
       <SectionHeader title="Public meeting point" small />
       <Field
@@ -393,7 +403,8 @@ export default function CreatePlan() {
         value={venue ? `${venue.name}, ${venue.area_name}` : ''}
         placeholder="Choose a café or public spot"
         onPress={() => router.push('/plan/venue')}
-        trailingIcon={venue ? 'verified' : 'chevron-right'}
+        trailingIcon={venue ? 'verified-badge' : 'chevron-right'}
+        trailingColor={venue ? 'success' : 'textMuted'}
       />
       <Card style={styles.row}>
         <View style={styles.flex}>
@@ -440,15 +451,16 @@ const styles = StyleSheet.create({
   tileHead: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: space.sm },
   stack: { gap: space.sm },
   group: { gap: space.sm },
+  durations: { marginTop: space.lg },
   notes: { gap: space.md, marginTop: space.lg },
   row: { flexDirection: 'row', alignItems: 'center', marginTop: space.lg, marginBottom: space.md },
   flex: { flex: 1, gap: 2 },
-  previewCover: { height: 140, borderRadius: radii.lg, padding: space.md },
+  previewCover: { aspectRatio: 16 / 9, borderRadius: radii.lg, padding: space.md },
   bannerRow: { flexDirection: 'row', alignItems: 'center', gap: space.lg },
   banner: {
-    width: 112,
-    height: 112,
-    borderRadius: radii.xl,
+    width: 144,
+    aspectRatio: 16 / 9,
+    borderRadius: radii.lg,
     overflow: 'hidden',
     backgroundColor: colors.surface2,
     borderWidth: 1,

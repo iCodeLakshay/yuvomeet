@@ -29,9 +29,12 @@ export const VenueRow = memo(function VenueRow({ venue, onPress, selected }: Ven
         }
       />
       <View style={styles.flex}>
-        <Text variant="bodyStrong" numberOfLines={1}>
-          {venue.name}
-        </Text>
+        <View style={styles.nameRow}>
+          <Text variant="bodyStrong" numberOfLines={1} style={styles.name}>
+            {venue.name}
+          </Text>
+          <Icon name="verified-badge" size={20} color="success" />
+        </View>
         <Text variant="small" color="textMuted" numberOfLines={1}>
           {venue.area_name} · up to {venue.capacity}
         </Text>
@@ -40,7 +43,7 @@ export const VenueRow = memo(function VenueRow({ venue, onPress, selected }: Ven
           {venue.late_events_allowed ? <Badge label="Open late" icon="nightlight-round" /> : null}
         </View>
       </View>
-      {selected ? <Icon name="check-circle" size={24} color="accent" /> : <Icon name="chevron-right" size={22} color="textSubtle" />}
+      {selected ? <Icon name="check-circle" size={26} color="brand" /> : <Icon name="chevron-right" size={24} color="textSubtle" />}
     </Pressable>
   );
 });
@@ -60,5 +63,7 @@ const styles = StyleSheet.create({
   photo: { width: 64, height: 64, borderRadius: radii.lg },
   fallback: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface2 },
   flex: { flex: 1, gap: 2 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  name: { flexShrink: 1 },
   badges: { flexDirection: 'row', gap: space.xs, marginTop: space.xs },
 });

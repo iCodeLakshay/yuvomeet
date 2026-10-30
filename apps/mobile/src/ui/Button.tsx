@@ -1,9 +1,9 @@
-import { memo } from 'react';
+import { memo, type ReactNode } from 'react';
 import { ActivityIndicator, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Icon, type IconName } from './Icon';
 import { Pressable } from './Pressable';
 import { Text } from './Text';
-import { colors, radii, space, type ColorToken } from './theme';
+import { colors, radii, space, type ColorToken, type TypeVariant } from './theme';
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'sos';
 type Size = 'lg' | 'md' | 'sm';
@@ -14,10 +14,14 @@ export interface ButtonProps {
   variant?: Variant;
   size?: Size;
   icon?: IconName;
+  /** Custom leading glyph (brand marks such as the Google "G"); replaces `icon`. */
+  leading?: ReactNode;
   trailingIcon?: IconName;
   loading?: boolean;
   disabled?: boolean;
   fill?: boolean;
+  /** Label style override; cards use 'buttonCompact' so actions stay below titles and details. */
+  labelVariant?: TypeVariant;
   style?: StyleProp<ViewStyle>;
   accessibilityLabel?: string;
 }
@@ -37,14 +41,17 @@ export const Button = memo(function Button({
   variant = 'primary',
   size = 'lg',
   icon,
+  leading,
   trailingIcon,
   loading,
   disabled,
   fill = true,
+  labelVariant,
   style,
   accessibilityLabel,
 }: ButtonProps) {
   const t = tone[variant];
+  const glyph = size === 'sm' ? 20 : 22;
   return (
     <Pressable
       onPress={onPress}
@@ -64,11 +71,11 @@ export const Button = memo(function Button({
         <ActivityIndicator color={colors[t.text]} />
       ) : (
         <View style={styles.row}>
-          {icon ? <Icon name={icon} size={size === 'sm' ? 16 : 20} color={t.text} /> : null}
-          <Text variant={size === 'sm' ? 'smallStrong' : 'button'} color={t.text} numberOfLines={1}>
+          {leading ?? (icon ? <Icon name={icon} size={glyph} color={t.text} /> : null)}
+          <Text variant={labelVariant ?? (size === 'sm' ? 'smallStrong' : 'button')} color={t.text} numberOfLines={1}>
             {label}
           </Text>
-          {trailingIcon ? <Icon name={trailingIcon} size={size === 'sm' ? 16 : 20} color={t.text} /> : null}
+          {trailingIcon ? <Icon name={trailingIcon} size={glyph} color={t.text} /> : null}
         </View>
       )}
     </Pressable>
@@ -87,5 +94,5 @@ const styles = StyleSheet.create({
   lg: { minHeight: 56 },
   md: { minHeight: 48 },
   sm: { minHeight: 36, paddingHorizontal: space.lg },
-  row: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  row: { flexDirection: 'row', alignItems: 'center', gap: space.xs + 2 },
 });

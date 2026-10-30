@@ -1,17 +1,11 @@
-import { memo } from 'react';
+import { memo, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Icon, type IconName } from './Icon';
 import { Text } from './Text';
-import { colors, radii, space, type ColorToken } from './theme';
+import { colors, radii, space } from './theme';
+import { toast } from './Toast';
 
 type Tone = 'info' | 'success' | 'warning' | 'danger';
-
-const tones: Record<Tone, { icon: IconName; color: ColorToken; bg: string; border: string }> = {
-  info: { icon: 'shield', color: 'textMuted', bg: colors.surface1, border: colors.border },
-  success: { icon: 'verified-user', color: 'success', bg: colors.successBg, border: colors.successBorder },
-  warning: { icon: 'info-outline', color: 'warning', bg: colors.warningBg, border: 'rgba(245, 158, 11, 0.35)' },
-  danger: { icon: 'error-outline', color: 'danger', bg: colors.dangerBg, border: colors.danger },
-};
 
 export interface NoticeProps {
   text: string;
@@ -20,19 +14,28 @@ export interface NoticeProps {
   icon?: IconName;
 }
 
-/** Inline banner: safety notices, errors, confirmations. */
+const send = { success: toast.success, warning: toast.warning, danger: toast.error } as const;
+
+/**
+ * Messages about what just happened or what is wrong (errors, warnings, confirmations) are shown
+ * as a toast at the top of the screen, never inline. The component stays so screens keep their
+ * conditions; it renders nothing and raises the toast when its text appears or changes.
+ *
+ * Only the `info` tone stays on the page: static explanations such as privacy and policy copy
+ * that people need to be able to reread.
+ */
 export const Notice = memo(function Notice({ text, title, tone = 'info', icon }: NoticeProps) {
-  const t = tones[tone];
+  useEffect(() => {
+    if (tone !== 'info') send[tone](text, title);
+  }, [tone, text, title]);
+
+  if (tone !== 'info') return null;
   return (
-    <View
-      style={[styles.box, { backgroundColor: t.bg, borderColor: t.border }]}
-      accessibilityRole={tone === 'danger' ? 'alert' : undefined}
-      accessibilityLiveRegion={tone === 'danger' ? 'polite' : 'none'}
-    >
-      <Icon name={icon ?? t.icon} size={18} color={t.color} />
+    <View style={styles.box}>
+      <Icon name={icon ?? 'shield'} size={20} color="textMuted" />
       <View style={styles.flex}>
         {title ? <Text variant="smallStrong">{title}</Text> : null}
-        <Text variant="small" color={tone === 'info' ? 'textMuted' : t.color}>
+        <Text variant="small" color="textMuted">
           {text}
         </Text>
       </View>
@@ -41,6 +44,14 @@ export const Notice = memo(function Notice({ text, title, tone = 'info', icon }:
 });
 
 const styles = StyleSheet.create({
-  box: { flexDirection: 'row', gap: space.md, padding: space.md, borderRadius: radii.lg, borderWidth: 1 },
+  box: {
+    flexDirection: 'row',
+    gap: space.md,
+    padding: space.md,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    backgroundColor: colors.surface1,
+    borderColor: colors.border,
+  },
   flex: { flex: 1, gap: 2 },
 });

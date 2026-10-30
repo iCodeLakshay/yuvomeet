@@ -94,7 +94,7 @@ export const MessageBubble = memo(function MessageBubble({
     <>
       {selecting ? (
         <View style={styles.check}>
-          <Icon name={selected ? 'check-circle' : 'radio-button-unchecked'} size={22} color={selected ? 'accent' : 'textSubtle'} />
+          <Icon name={selected ? 'check-circle' : 'radio-button-unchecked'} size={22} color={selected ? 'brand' : 'textSubtle'} />
         </View>
       ) : null}
       {!mine ? (

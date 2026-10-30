@@ -13,7 +13,6 @@ import { isVerified, useMe } from '../../../src/features/session/SessionProvider
 import { toAppError } from '../../../src/lib/errors';
 import { startSpan } from '../../../src/lib/telemetry';
 import {
-  Card,
   Chip,
   colors,
   DOCK_HEIGHT,
@@ -86,20 +85,6 @@ export default function Discover() {
           ))}
         </ScrollView>
       </View>
-      <Card onPress={() => router.push('/venues')} accessibilityLabel="Approved venues" style={styles.banner}>
-        <View style={styles.bannerRow}>
-          <View style={styles.bannerIcon}>
-            <Icon name="storefront" size={20} />
-          </View>
-          <View style={styles.flex}>
-            <Text variant="smallStrong">Approved public venues</Text>
-            <Text variant="caption" color="textSubtle">
-              Every plan happens at a checked café or public spot
-            </Text>
-          </View>
-          <Icon name="chevron-right" size={22} color="textSubtle" />
-        </View>
-      </Card>
       {offline ? <Notice tone="warning" text="You're offline. Showing plans you've already loaded." icon="wifi-off" /> : null}
       <View style={styles.sectionRow}>
         <Text variant="title2">Active gatherings</Text>
@@ -120,7 +105,7 @@ export default function Discover() {
             style={styles.place}
           >
             <View style={styles.navIcon}>
-              <Icon name={place.data ? 'near-me' : 'location-searching'} size={20} />
+              <Icon name={place.data ? 'near-me' : 'location-searching'} size={24} color="brand" />
             </View>
             <View style={styles.flex}>
               <Text variant="title3" numberOfLines={1}>
@@ -131,11 +116,11 @@ export default function Discover() {
               </Text>
             </View>
           </Pressable>
-          <IconButton icon="notifications-none" label="Notifications" badge={unread > 0} onPress={() => router.push('/notifications')} />
+          <IconButton icon="notifications-none" label="Notifications" color="brand" badge={unread > 0} onPress={() => router.push('/notifications')} />
         </View>
         <View style={styles.searchRow}>
           <View style={styles.search}>
-            <Icon name="search" size={20} color="textSubtle" />
+            <Icon name="search" size={22} color="textSubtle" />
             <TextInput
               defaultValue={filters.search}
               onChangeText={(search) => feedFilters.set((f) => ({ ...f, search }))}
@@ -148,7 +133,7 @@ export default function Discover() {
             />
           </View>
           <Pressable onPress={() => router.push('/filters')} accessibilityLabel="Filters" style={styles.filterBtn}>
-            <Icon name="tune" size={20} />
+            <Icon name="tune" size={22} color="brand" />
             <Text variant="smallStrong">{filterCount ? `Filters · ${filterCount}` : 'Filters'}</Text>
           </Pressable>
         </View>
@@ -186,9 +171,9 @@ const styles = StyleSheet.create({
   top: { paddingHorizontal: gutter, paddingBottom: space.md, gap: space.md, borderBottomWidth: 1, borderBottomColor: colors.border },
   cityRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingTop: space.sm },
   navIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: colors.surface2,
     alignItems: 'center',
     justifyContent: 'center',
@@ -223,16 +208,6 @@ const styles = StyleSheet.create({
   listHeader: { gap: space.lg, paddingTop: space.lg, paddingBottom: space.md },
   chips: { marginHorizontal: -gutter },
   chipRow: { paddingHorizontal: gutter, gap: space.sm },
-  banner: { padding: space.md },
-  bannerRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
-  bannerIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.surface3,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   sectionRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
   separator: { height: space.lg },
 });

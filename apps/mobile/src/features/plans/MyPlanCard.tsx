@@ -16,7 +16,7 @@ function Shell({ plan, badge, side, children }: { plan: PlanCard; badge?: ReactN
       <View style={styles.top}>
         <View style={styles.flex}>
           <View style={styles.meta}>
-            <Text variant="caption" color="textMuted">
+            <Text variant="smallStrong" color="textMuted">
               {formatPlanTime(plan.starts_at!)}
             </Text>
             {badge}
@@ -25,8 +25,8 @@ function Shell({ plan, badge, side, children }: { plan: PlanCard; badge?: ReactN
             {plan.title}
           </Text>
           <View style={styles.venue}>
-            <Icon name="location-on" size={16} color="textSubtle" />
-            <Text variant="small" color="textMuted" numberOfLines={1} style={styles.flex}>
+            <Icon name="location-on" size={20} color="textSubtle" />
+            <Text variant="body" color="textMuted" numberOfLines={1} style={styles.flex}>
               {plan.venue_name}, {plan.venue_area_name}
             </Text>
           </View>
@@ -89,6 +89,7 @@ export const HostedPlanCard = memo(function HostedPlanCard({ plan }: { plan: Pla
       <View style={styles.actions}>
         <Button
           label="Attendees"
+          labelVariant="buttonCompact"
           icon="group"
           variant="secondary"
           size="md"
@@ -98,6 +99,7 @@ export const HostedPlanCard = memo(function HostedPlanCard({ plan }: { plan: Pla
         />
         <Button
           label="Group Chat"
+          labelVariant="buttonCompact"
           icon="forum"
           size="md"
           fill={false}
@@ -117,6 +119,7 @@ export const JoinedPlanCard = memo(function JoinedPlanCard({ plan }: { plan: Pla
       <View style={[styles.actions, styles.divider]}>
         <Button
           label="Open Chat"
+          labelVariant="buttonCompact"
           icon="chat-bubble-outline"
           variant="secondary"
           size="md"
@@ -127,6 +130,7 @@ export const JoinedPlanCard = memo(function JoinedPlanCard({ plan }: { plan: Pla
         />
         <Button
           label="Directions"
+          labelVariant="buttonCompact"
           icon="directions"
           variant="secondary"
           size="md"
@@ -161,7 +165,7 @@ export const PastPlanRow = memo(function PastPlanRow({ plan, canRate }: { plan: 
     <Card onPress={() => openPlan(plan.id!)} accessibilityLabel={plan.title ?? 'Past plan'} style={styles.past}>
       <View style={styles.pastRow}>
         <View style={styles.pastIcon}>
-          <Icon name={cancelled ? 'event-busy' : 'event-available'} size={22} color="textMuted" />
+          <Icon name={cancelled ? 'event-busy' : 'event-available'} size={26} color="textMuted" />
         </View>
         <View style={styles.flex}>
           <Text variant="bodyStrong" numberOfLines={1}>
@@ -190,7 +194,7 @@ const styles = StyleSheet.create({
   top: { flexDirection: 'row', gap: space.md },
   flex: { flex: 1 },
   meta: { flexDirection: 'row', alignItems: 'center', gap: space.sm, marginBottom: space.xs, flexWrap: 'wrap' },
-  venue: { flexDirection: 'row', alignItems: 'center', gap: space.xs, marginTop: space.xs },
+  venue: { flexDirection: 'row', alignItems: 'center', gap: 2, marginTop: space.xs },
   hostSide: { alignItems: 'center', gap: space.xs, maxWidth: 64 },
   spots: {
     alignSelf: 'flex-start',

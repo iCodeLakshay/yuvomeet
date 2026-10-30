@@ -2,6 +2,7 @@ import { useInfiniteQuery, useMutation, useQuery } from '@tanstack/react-query';
 import { FEED_PAGE_SIZE } from '@yuvomeet/shared';
 import * as Location from 'expo-location';
 import { AppError, unwrap, unwrapMaybe } from '../../lib/errors';
+import { PAYWALL_ENABLED } from '../../lib/flags';
 import { callFunction } from '../../lib/functions';
 import { uploadForModeration } from '../../lib/media';
 import { qk, queryClient } from '../../lib/query';
@@ -182,8 +183,12 @@ export function useCaps() {
   });
 }
 
-/** Paid passes lift the weekly join and host caps (enforced in request_join / create_plan). */
-export const isPaid = (caps: Pick<Caps, 'entitlement'> | undefined) => Boolean(caps && caps.entitlement !== 'free');
+/**
+ * True when the free-tier weekly join and host caps do not apply: a paid pass lifts them
+ * (enforced in request_join / create_plan), and so does the paywall being switched off.
+ */
+export const isPaid = (caps: Pick<Caps, 'entitlement'> | undefined) =>
+  !PAYWALL_ENABLED || Boolean(caps && caps.entitlement !== 'free');
 
 /** PL-1: 1:1 plan banner, moderated before others can see it. */
 export function useUploadCover() {

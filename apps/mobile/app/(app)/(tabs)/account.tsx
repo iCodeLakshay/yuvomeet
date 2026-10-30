@@ -4,6 +4,7 @@ import { ProfileHero } from '../../../src/features/profile/ProfileHero';
 import { usePublicProfile } from '../../../src/features/profile/api';
 import { useCaps } from '../../../src/features/plans/api';
 import { isVerified, useMe, useSession } from '../../../src/features/session/SessionProvider';
+import { PAYWALL_ENABLED } from '../../../src/lib/flags';
 import { formatDateLong } from '../../../src/lib/format';
 import { Badge, Card, colors, confirm, Header, IconButton, ListRow, Notice, Screen, SectionHeader, space } from '../../../src/ui';
 
@@ -26,7 +27,13 @@ export default function Account() {
   const until = caps.data?.entitlement_until ? formatDateLong(caps.data.entitlement_until) : null;
 
   const confirmSignOut = async () => {
-    const ok = await confirm({ title: 'Sign out?', message: "You'll need to sign in again to see your plans and chats.", confirmLabel: 'Sign out', icon: 'logout', danger: true });
+    const ok = await confirm({
+      title: 'Leaving already?',
+      message: "You'll miss updates from your plans and chats until you're back. Everything stays safe here, and your people will be glad to see you again.",
+      confirmLabel: 'Sign out',
+      icon: 'logout',
+      emphasizeCancel: true,
+    });
     if (ok) void signOut();
   };
 
@@ -48,32 +55,36 @@ export default function Account() {
 
       <Card onPress={() => router.push(isVerified(me) ? '/verify/result' : '/verify')} accessibilityLabel={v.title} style={styles.verify}>
         <ListRow
-          icon={isVerified(me) ? 'verified-user' : 'shield'}
-          iconColor={isVerified(me) ? 'success' : 'text'}
+          icon={isVerified(me) ? 'verified-badge' : 'shield'}
+          iconColor={isVerified(me) ? 'brand' : 'text'}
           title={v.title}
           subtitle={v.subtitle}
-          trailing={<Badge label={isVerified(me) ? 'Done' : 'Open'} tone={v.tone} />}
+          trailing={isVerified(me) ? undefined : <Badge label="Open" tone={v.tone} />}
           chevron
         />
       </Card>
 
-      <Card onPress={() => router.push({ pathname: '/premium', params: { source: 'account' } })} accessibilityLabel="Yuvomeet Premium" style={styles.premium}>
-        <ListRow
-          icon="workspace-premium"
-          iconColor="accent"
-          title={tier === 'free' ? 'Get Yuvomeet Premium' : tier === 'premium' ? 'Premium is active' : 'Plus is active'}
-          subtitle={tier === 'free' ? 'Unlimited joins, priority requests' : until ? `Until ${until}` : 'Thanks for supporting Yuvomeet'}
-          trailing={tier === 'free' ? <Badge label="Upgrade" tone="accent" /> : undefined}
-          chevron
-        />
-      </Card>
+      {PAYWALL_ENABLED ? (
+        <>
+          <Card onPress={() => router.push({ pathname: '/premium', params: { source: 'account' } })} accessibilityLabel="Yuvomeet Premium" style={styles.premium}>
+            <ListRow
+              icon="workspace-premium"
+              iconColor="accent"
+              title={tier === 'free' ? 'Get Yuvomeet Premium' : tier === 'premium' ? 'Premium is active' : 'Plus is active'}
+              subtitle={tier === 'free' ? 'Unlimited joins, priority requests' : until ? `Until ${until}` : 'Thanks for supporting Yuvomeet'}
+              trailing={tier === 'free' ? <Badge label="Upgrade" tone="accent" /> : undefined}
+              chevron
+            />
+          </Card>
 
-      <SectionHeader title="Hosting" small />
-      <ListRow icon="account-balance-wallet" title="Earnings" subtitle="Paid plans, payouts and UPI" onPress={() => router.push('/settings/earnings')} />
+          <SectionHeader title="Hosting" small />
+          <ListRow icon="account-balance-wallet" title="Earnings" subtitle="Paid plans, payouts and UPI" onPress={() => router.push('/settings/earnings')} />
+        </>
+      ) : null}
 
       <SectionHeader title="Safety" small />
-      <ListRow icon="contact-phone" title="Trusted contact" onPress={() => router.push('/safety/contact')} />
-      <ListRow icon="block" title="Blocked members" onPress={() => router.push('/settings/blocked')} />
+      <ListRow emphasis icon="contact-phone" title="Trusted contact" onPress={() => router.push('/safety/contact')} />
+      <ListRow emphasis icon="block" title="Blocked members" onPress={() => router.push('/settings/blocked')} />
       <ListRow icon="gavel" title="Appeals" subtitle="Ask a person to review a decision" onPress={() => router.push('/settings/appeals')} />
 
       <SectionHeader title="Settings" small />

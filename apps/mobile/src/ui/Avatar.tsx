@@ -16,6 +16,8 @@ export interface AvatarProps {
 
 export const Avatar = memo(function Avatar({ path, name, size = 40, verified, ring }: AvatarProps) {
   const radius = size / 2;
+  // Large enough to read on a 32 px avatar, proportionate on the 120 px profile photo.
+  const badge = Math.max(16, Math.round(size * 0.34));
   return (
     <View style={{ width: size, height: size }}>
       <RemoteImage
@@ -31,8 +33,8 @@ export const Avatar = memo(function Avatar({ path, name, size = 40, verified, ri
         }
       />
       {verified ? (
-        <View style={[styles.check, { width: size * 0.38, height: size * 0.38, borderRadius: size * 0.19 }]}>
-          <Icon name="check" size={size * 0.24} color="bg" />
+        <View style={[styles.badge, { width: badge, height: badge, borderRadius: badge / 2 }]}>
+          <Icon name="verified-badge" size={badge} color="brand" />
         </View>
       ) : null}
     </View>
@@ -68,16 +70,7 @@ export const AvatarStack = memo(function AvatarStack({ names, total, size = 28 }
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   ring: { borderWidth: 2, borderColor: colors.borderStrong },
-  check: {
-    position: 'absolute',
-    right: -1,
-    bottom: -1,
-    backgroundColor: colors.success,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: colors.bg,
-  },
+  badge: { position: 'absolute', right: -2, bottom: -2, alignItems: 'center', justifyContent: 'center' },
   stack: { flexDirection: 'row', alignItems: 'center' },
   bubble: {
     backgroundColor: colors.surface3,

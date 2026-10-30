@@ -5,7 +5,8 @@ import { useLookups } from './api';
 
 export interface ProfileSummary {
   first_name: string | null;
-  age_band: string | null;
+  /** Years, from the birth year the member gave at sign-up (replaced by the ID value once verified). */
+  age: number | null;
   college_name: string | null;
   bio: string | null;
   is_verified: boolean | null;
@@ -60,7 +61,7 @@ export const ProfileHero = memo(function ProfileHero({ profile, mine = [] }: { p
           {profile.first_name}
         </Text>
         <Text variant="body" color="textMuted" align="center">
-          {[profile.age_band, profile.college_name].filter(Boolean).join(' · ')}
+          {[profile.age ? `Age ${profile.age}` : null, profile.college_name].filter(Boolean).join(' · ')}
         </Text>
       </View>
       {profile.bio ? (
@@ -78,8 +79,8 @@ export const ProfileHero = memo(function ProfileHero({ profile, mine = [] }: { p
       {interests.length ? (
         <View style={styles.interests}>
           <View style={styles.interestHead}>
-            <Icon name="loyalty" size={18} color="textMuted" />
-            <Text variant="smallStrong" color="textMuted" style={styles.flex}>
+            <Icon name="loyalty" size={28} color="brand" />
+            <Text variant="bodyStrong" color="textMuted" style={styles.flex}>
               {mine.length ? 'Interests' : 'Your interests'}
             </Text>
             {common ? <Badge label={`${common} in common`} /> : null}
@@ -89,7 +90,7 @@ export const ProfileHero = memo(function ProfileHero({ profile, mine = [] }: { p
               const shared = mine.includes(i.slug);
               return (
                 <View key={i.slug} style={[styles.chip, shared ? styles.chipShared : null]}>
-                  <Icon name={i.icon} size={16} color={shared ? 'accent' : 'textMuted'} />
+                  <Icon name={i.icon} size={20} color={shared ? 'brand' : 'textMuted'} />
                   <Text variant="smallStrong" color={shared ? 'text' : 'textMuted'}>
                     {i.label}
                   </Text>

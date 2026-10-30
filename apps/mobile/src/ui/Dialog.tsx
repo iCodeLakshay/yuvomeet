@@ -7,6 +7,7 @@ import { Icon, type IconName } from './Icon';
 import { Pressable } from './Pressable';
 import { Text } from './Text';
 import { colors, gutter, radii, space } from './theme';
+import { toast } from './Toast';
 
 export interface DialogAction {
   label: string;
@@ -22,6 +23,8 @@ export interface DialogOptions {
   actions: DialogAction[];
   /** Label of the dismiss button; resolves null. */
   cancelLabel?: string;
+  /** Side by side, with Cancel as the filled button and the action quieter (sign out). */
+  emphasizeCancel?: boolean;
 }
 
 interface Pending extends DialogOptions {
@@ -44,21 +47,23 @@ export async function confirm(options: {
   icon?: IconName;
   danger?: boolean;
   cancelLabel?: string;
+  emphasizeCancel?: boolean;
 }): Promise<boolean> {
   const value = await showDialog({
     title: options.title,
     message: options.message,
     icon: options.icon,
     danger: options.danger,
+    emphasizeCancel: options.emphasizeCancel,
     cancelLabel: options.cancelLabel ?? 'Cancel',
     actions: [{ label: options.confirmLabel, value: 'ok', tone: options.danger ? 'danger' : 'primary' }],
   });
   return value === 'ok';
 }
 
-/** One-button message (errors after an action). */
-export function notify(title: string, message?: string, icon: IconName = 'error-outline') {
-  void showDialog({ title, message, icon, actions: [{ label: 'OK', value: 'ok', tone: 'secondary' }] });
+/** Error after an action. Shown as a toast at the top of the screen, not a dialog. */
+export function notify(title: string, message?: string) {
+  toast.error(message ?? title, message ? title : undefined);
 }
 
 function close(value: string | null) {
@@ -99,18 +104,27 @@ export const DialogHost = memo(function DialogHost() {
                 {d.message}
               </Text>
             ) : null}
-            <View style={styles.actions}>
-              {d.actions.map((a) => (
-                <Button
-                  key={a.value}
-                  label={a.label}
-                  size="md"
-                  variant={a.tone === 'danger' ? 'danger' : a.tone === 'secondary' ? 'secondary' : 'primary'}
-                  onPress={() => close(a.value)}
-                />
-              ))}
-              {d.cancelLabel ? <Button label={d.cancelLabel} size="md" variant="ghost" onPress={() => close(null)} /> : null}
-            </View>
+            {d.emphasizeCancel && d.cancelLabel ? (
+              <View style={styles.actionsRow}>
+                <Button label={d.cancelLabel} size="md" fill={false} style={styles.half} onPress={() => close(null)} />
+                {d.actions.map((a) => (
+                  <Button key={a.value} label={a.label} size="md" variant="secondary" fill={false} style={styles.half} onPress={() => close(a.value)} />
+                ))}
+              </View>
+            ) : (
+              <View style={styles.actions}>
+                {d.actions.map((a) => (
+                  <Button
+                    key={a.value}
+                    label={a.label}
+                    size="md"
+                    variant={a.tone === 'danger' ? 'danger' : a.tone === 'secondary' ? 'secondary' : 'primary'}
+                    onPress={() => close(a.value)}
+                  />
+                ))}
+                {d.cancelLabel ? <Button label={d.cancelLabel} size="md" variant="ghost" onPress={() => close(null)} /> : null}
+              </View>
+            )}
           </Animated.View>
         </Animated.View>
       ) : null}
@@ -142,4 +156,6 @@ const styles = StyleSheet.create({
   },
   iconDanger: { backgroundColor: colors.dangerBg },
   actions: { alignSelf: 'stretch', gap: space.sm, marginTop: space.md },
+  actionsRow: { alignSelf: 'stretch', flexDirection: 'row', gap: space.md, marginTop: space.md },
+  half: { flex: 1 },
 });

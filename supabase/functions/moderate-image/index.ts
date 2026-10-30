@@ -18,26 +18,46 @@ interface Body {
   messageId?: string;
 }
 
+/** Names the real format from the first bytes, so the error says what was sent (never trusts the name). */
+function sniffFormat(b: Uint8Array): string | null {
+  const ascii = (from: number, to: number) => String.fromCharCode(...b.subarray(from, to));
+  if (b[0] === 0x89 && ascii(1, 4) === 'PNG') return 'PNG';
+  if (ascii(0, 3) === 'GIF') return 'GIF';
+  if (ascii(0, 4) === 'RIFF' && ascii(8, 12) === 'WEBP') return 'WebP';
+  if (ascii(4, 8) === 'ftyp') return /^(avif|avis)/.test(ascii(8, 12)) ? 'AVIF' : /^(heic|heix|mif1|msf1)/.test(ascii(8, 12)) ? 'HEIC' : null;
+  return null;
+}
+
 serve(async (req) => {
   const userId = await requireUser(req);
   await rateLimit(userId, 'moderate-image', 3_600, 40);
   const body = await readJson<Body>(req);
   const path = body.path ?? '';
-  if (!['profile', 'chat', 'plan'].includes(body.kind ?? '') || !new RegExp(`^${userId}/[0-9a-f-]{36}\\.jpg$`).test(path)) {
-    throw new HttpError(400, 'BAD_REQUEST', 'Invalid upload.');
+  if (!['profile', 'chat', 'plan'].includes(body.kind ?? '')) {
+    throw new HttpError(400, 'BAD_REQUEST', 'This kind of upload is not supported. Update the app and try again.');
+  }
+  if (!new RegExp(`^${userId}/[0-9a-f-]{36}\\.jpg$`).test(path)) {
+    throw new HttpError(400, 'BAD_REQUEST', 'The upload could not be matched to your account. Try again.');
   }
   if (body.kind === 'chat' && !(UUID.test(body.conversationId ?? '') && UUID.test(body.messageId ?? ''))) {
-    throw new HttpError(400, 'BAD_REQUEST', 'Invalid upload.');
+    throw new HttpError(400, 'BAD_REQUEST', 'The upload is missing its chat. Try again.');
   }
 
   const { data: file, error: downloadError } = await admin.storage.from('quarantine').download(path);
-  if (downloadError || !file || file.size > MAX_BYTES) throw new HttpError(400, 'BAD_UPLOAD', 'Upload a JPEG under 8 MB.');
+  if (downloadError || !file) throw new HttpError(400, 'UPLOAD_MISSING', "We couldn't find the uploaded photo. Try again.");
+  if (file.size > MAX_BYTES) throw new HttpError(400, 'TOO_LARGE', 'That photo is larger than 8 MB. Pick a smaller one.');
 
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const other = sniffFormat(bytes);
+  if (other) {
+    // The app converts every format to JPEG on the device; this only fires for a modified or old client.
+    throw new HttpError(400, 'UNSUPPORTED_FORMAT', `A ${other} file reached the server unconverted. Update the app and try again.`);
+  }
   let image: Uint8Array<ArrayBuffer>;
   try {
-    image = stripJpegMetadata(new Uint8Array(await file.arrayBuffer()));
+    image = stripJpegMetadata(bytes);
   } catch {
-    throw new HttpError(400, 'BAD_UPLOAD', 'Upload a JPEG under 8 MB.');
+    throw new HttpError(400, 'BAD_UPLOAD', "That file isn't a valid image. Try a JPEG, PNG, WebP, GIF or AVIF photo.");
   }
   const id = unwrap(await admin.rpc('svc_register_upload', {
     p_user: userId,

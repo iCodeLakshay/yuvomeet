@@ -1,10 +1,11 @@
 import { formatRupees, PREMIUM_PRODUCTS, TIER_PERKS, type PaidTier } from '@yuvomeet/shared';
-import { router, useLocalSearchParams } from 'expo-router';
+import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useCaps } from '../../src/features/plans/api';
 import { useCheckout } from '../../src/features/premium/api';
 import { errorMessage } from '../../src/lib/errors';
+import { PAYWALL_ENABLED } from '../../src/lib/flags';
 import { formatDateLong } from '../../src/lib/format';
 import { track } from '../../src/lib/telemetry';
 import { Badge, Button, colors, EmptyState, Header, Icon, Notice, Pressable, radii, Screen, space, Text } from '../../src/ui';
@@ -14,8 +15,13 @@ const TIERS: { tier: PaidTier; name: string; tagline: string }[] = [
   { tier: 'premium', name: 'Premium', tagline: 'Get picked first and get seen first' },
 ];
 
+/** Paywall is switched off (src/lib/flags.ts): anyone who lands here, e.g. from an old notification, goes home. */
+export default function PremiumRoute() {
+  return PAYWALL_ENABLED ? <Premium /> : <Redirect href="/" />;
+}
+
 /** Paywall: Plus / Premium passes paid through Razorpay. Perks are enforced server-side. */
-export default function Premium() {
+function Premium() {
   const { source } = useLocalSearchParams<{ source?: string }>();
   const caps = useCaps().data;
   const checkout = useCheckout();
@@ -62,7 +68,7 @@ export default function Premium() {
     >
       <View style={styles.hero}>
         <View style={styles.crown}>
-          <Icon name="workspace-premium" size={34} color="accent" />
+          <Icon name="workspace-premium" size={34} color="brand" />
         </View>
         <Text variant="title1" align="center">
           Make every plan count
@@ -101,7 +107,7 @@ export default function Premium() {
                   {t.name}
                 </Text>
                 {t.tier === 'premium' ? <Badge label="Most picked" tone="accent" /> : null}
-                <Icon name={on ? 'radio-button-checked' : 'radio-button-unchecked'} size={22} color={on ? 'accent' : 'textSubtle'} />
+                <Icon name={on ? 'radio-button-checked' : 'radio-button-unchecked'} size={22} color={on ? 'brand' : 'textSubtle'} />
               </View>
               <Text variant="small" color="textMuted">
                 {t.tagline}

@@ -6,6 +6,7 @@ import { IconButton } from './IconButton';
 import { Pressable } from './Pressable';
 import { Text } from './Text';
 import { colors, gutter, radii, space } from './theme';
+import { ToastHost } from './Toast';
 
 export interface SheetProps {
   visible: boolean;
@@ -42,6 +43,7 @@ export const Sheet = memo(function Sheet({ visible, onClose, title, subtitle, ch
             {children}
             {footer ? <View style={styles.footer}>{footer}</View> : null}
           </Animated.View>
+          <ToastHost inModal />
         </Animated.View>
       ) : null}
     </Modal>

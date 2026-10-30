@@ -220,6 +220,13 @@ Use `pnpm exec expo` (or `pnpm start` / `pnpm android`) so the CLI matches **Exp
 - Locally, `kyc-start` applies a passing verification without HyperVerge, so you can test joining and hosting.
 - Android package id: `app.yuvomeet` (see [`app.config.ts`](./app.config.ts)).
 
+## Dev switches and test data
+
+- **Paywall:** off by default (`src/lib/flags.ts`). Plus / Premium, weekly caps and paid plans are hidden, and the server-side caps are lifted by `supabase/migrations/20261029000001_paywall_skip.sql`. All payment code is kept; set `EXPO_PUBLIC_PAYWALL=on` and run the revert SQL in that migration to bring it back.
+- **Test data (dev project only):** `supabase db query --linked -f supabase/seed/dev-test-data.sql` adds 12 members, 11 plans in every state, chats, requests and moderation items around your account. Everything it creates has an id starting `5eed`; `supabase/seed/dev-test-data-cleanup.sql` removes exactly that.
+- **Icons:** every icon is a Glass icon from `@thesvg/ui-react-native`, mapped in `src/ui/glassIcons.ts`. Add a mapping there when a screen needs a new one.
+- **Images:** photos and banners accept JPEG, PNG, WebP, GIF (first frame), AVIF and HEIC. The device converts them to JPEG before upload, so storage only ever holds JPEG (max 8 MB).
+
 ## Code layout
 
 | Folder | What lives there |

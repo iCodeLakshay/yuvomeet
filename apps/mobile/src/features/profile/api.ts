@@ -76,6 +76,8 @@ export interface ProfilePatch {
   languages?: string[];
   area?: { name: string; cell: string };
   collegeId?: string | null;
+  /** Whole years; the server stores the birth year and lets the ID check overwrite it. */
+  age?: number;
 }
 
 export function useSaveProfile() {
@@ -92,6 +94,7 @@ export function useSaveProfile() {
           p_area_cell: patch.area?.cell,
           p_college_id: patch.collegeId ?? undefined,
           p_clear_college: patch.collegeId === null,
+          p_age: patch.age,
         }),
       ),
     onSuccess: refreshMe,

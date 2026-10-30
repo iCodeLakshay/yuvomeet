@@ -39,7 +39,8 @@ export default function Verify() {
       }
     >
       <StatusHero
-        icon="verified-user"
+        icon="verified-badge"
+        iconColor="brand"
         badge="lock"
         eyebrow="18+ community"
         title="Verify once"

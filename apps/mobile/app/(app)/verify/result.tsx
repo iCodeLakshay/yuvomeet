@@ -29,7 +29,7 @@ export default function VerifyResult() {
   let actions: React.ReactNode;
   switch (status) {
     case 'verified':
-      hero = { icon: 'verified-user', badge: 'check', badgeColor: 'success', eyebrow: 'Verified', title: "You're verified", body: 'You can now join and host plans. Your profile shows the verified badge.' };
+      hero = { icon: 'verified-badge', iconColor: 'brand', badge: 'check', badgeColor: 'brand', eyebrow: 'Verified', title: "You're verified", body: 'You can now join and host plans. Your profile shows the verified badge.' };
       actions = <Button label="Find a plan" trailingIcon="arrow-forward" onPress={goHome} />;
       break;
     case 'pending':

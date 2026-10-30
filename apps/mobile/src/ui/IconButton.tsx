@@ -32,7 +32,7 @@ export const IconButton = memo(function IconButton({
       pressScale={0.92}
       style={[styles.base, { width: size, height: size, borderRadius: size / 2 }, styles[variant]]}
     >
-      <Icon name={icon} size={22} color={color ?? (variant === 'primary' ? 'onPrimary' : 'text')} />
+      <Icon name={icon} size={Math.round(size * 0.55)} color={color ?? (variant === 'primary' ? 'onPrimary' : 'text')} />
       {badge ? <View style={styles.badge} /> : null}
     </Pressable>
   );

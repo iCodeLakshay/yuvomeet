@@ -15,6 +15,8 @@ export interface ListRowProps {
   onPress?: () => void;
   chevron?: boolean;
   destructive?: boolean;
+  /** Key destinations (Trusted contact, Blocked members): larger icon, kept grey. */
+  emphasis?: boolean;
 }
 
 /** Settings / notification row: circle icon, title, subtitle, chevron. */
@@ -28,13 +30,14 @@ export const ListRow = memo(function ListRow({
   onPress,
   chevron = Boolean(onPress),
   destructive,
+  emphasis,
 }: ListRowProps) {
   const content = (
     <View style={styles.row}>
       {leading ??
         (icon ? (
-          <View style={styles.iconCircle}>
-            <Icon name={icon} size={20} color={destructive ? 'danger' : (iconColor ?? 'text')} />
+          <View style={[styles.iconCircle, emphasis ? styles.iconCircleLg : null]}>
+            <Icon name={icon} size={emphasis ? 28 : 24} color={destructive ? 'danger' : (iconColor ?? (emphasis ? 'textMuted' : 'text'))} />
           </View>
         ) : null)}
       <View style={styles.flex}>
@@ -63,12 +66,13 @@ export const ListRow = memo(function ListRow({
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 56, paddingVertical: space.sm },
   iconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: colors.surface2,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  iconCircleLg: { width: 52, height: 52, borderRadius: 26 },
   flex: { flex: 1, gap: 2 },
 });

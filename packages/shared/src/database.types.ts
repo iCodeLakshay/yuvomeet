@@ -1965,6 +1965,7 @@ export type Database = {
       }
       public_profiles: {
         Row: {
+          age: number | null
           age_band: string | null
           area_name: string | null
           bio: string | null
@@ -2129,6 +2130,7 @@ export type Database = {
       }
       save_profile: {
         Args: {
+          p_age?: number
           p_area_cell?: string
           p_area_name?: string
           p_bio?: string

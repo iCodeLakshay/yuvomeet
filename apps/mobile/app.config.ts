@@ -5,9 +5,6 @@ import type { ConfigContext, ExpoConfig } from 'expo/config';
 const resolvePackage = (pkg: string) =>
   require.resolve(pkg + '/package.json').replace(/[\\/]package\.json$/, '');
 const INTER = resolvePackage('@expo-google-fonts/inter');
-const ICON_FONT = require.resolve(
-  '@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/MaterialIcons.ttf'
-);
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
@@ -59,7 +56,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
           `${INTER}/600SemiBold/Inter_600SemiBold.ttf`,
           `${INTER}/700Bold/Inter_700Bold.ttf`,
           `${INTER}/800ExtraBold/Inter_800ExtraBold.ttf`,
-          ICON_FONT,
         ],
       },
     ],

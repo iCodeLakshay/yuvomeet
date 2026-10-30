@@ -43,7 +43,7 @@ export const PlanCard = memo(function PlanCard({ plan, onOpen, onJoin, onHost }:
         </View>
         <View style={styles.bottomRow}>
           <View style={styles.time}>
-            <Icon name="schedule" size={16} color="primary" />
+            <Icon name="schedule" size={18} color="primary" />
             <Text variant="smallStrong" color="primary">
               {formatPlanTime(plan.starts_at!)}
             </Text>
@@ -57,7 +57,7 @@ export const PlanCard = memo(function PlanCard({ plan, onOpen, onJoin, onHost }:
           {plan.title}
         </Text>
         <View style={styles.venue}>
-          <Icon name="location-on" size={16} color="textSubtle" />
+          <Icon name="location-on" size={18} color="textSubtle" />
           <Text variant="small" color="textMuted" numberOfLines={1} style={styles.flex}>
             {plan.venue_name}, {plan.venue_area_name}
           </Text>
@@ -68,7 +68,6 @@ export const PlanCard = memo(function PlanCard({ plan, onOpen, onJoin, onHost }:
         <Pressable onPress={() => onHost(plan.host_id!)} accessibilityLabel={`Host ${plan.host_first_name}`} style={styles.host}>
           <Avatar path={plan.host_photo_path} name={plan.host_first_name} size={32} verified={Boolean(plan.host_verified)} />
           <Text variant="smallStrong">{plan.host_first_name}</Text>
-          <Badge label="Host" />
         </Pressable>
         <View style={styles.actions}>
           <AvatarStack names={plan.member_names ?? []} total={plan.approved_count ?? 0} />
@@ -96,12 +95,12 @@ const styles = StyleSheet.create({
     padding: space.md,
     gap: space.md,
   },
-  cover: { height: 176, borderRadius: radii.lg, justifyContent: 'space-between', padding: space.md },
+  cover: { aspectRatio: 16 / 9, borderRadius: radii.lg, justifyContent: 'space-between', padding: space.md },
   topRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   bottomRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  time: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
+  time: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   body: { gap: space.xs, paddingHorizontal: space.xs },
-  venue: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
+  venue: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   flex: { flex: 1 },
   footer: {
     flexDirection: 'row',

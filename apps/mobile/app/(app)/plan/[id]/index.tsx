@@ -157,7 +157,7 @@ export default function PlanDetails() {
           right={<Button label="Maps" trailingIcon="open-in-new" variant="secondary" size="sm" fill={false} onPress={() => openDirections(plan.venue_lat!, plan.venue_lng!, plan.venue_name!)} />}
         >
           <Pressable onPress={() => router.push({ pathname: '/venues/[id]', params: { id: plan.venue_id! } })} accessibilityLabel="About this venue" style={styles.safeZone}>
-            <Icon name="verified" size={16} color="success" />
+            <Icon name="verified-badge" size={20} color="success" />
             <Text variant="caption" color="success">
               {plan.venue_partner ? 'Partner venue' : 'Verified public venue'}
             </Text>
@@ -325,7 +325,7 @@ function Footer({ plan, isHost, verified, left }: FooterProps) {
 }
 
 const styles = StyleSheet.create({
-  hero: { height: 300, justifyContent: 'space-between', paddingHorizontal: gutter, paddingBottom: space.lg },
+  hero: { aspectRatio: 16 / 9, justifyContent: 'space-between', paddingHorizontal: gutter, paddingBottom: space.lg },
   heroTop: { flexDirection: 'row', justifyContent: 'space-between' },
   heroActions: { flexDirection: 'row', gap: space.sm },
   body: { paddingHorizontal: gutter, paddingTop: space.lg, gap: space.md },

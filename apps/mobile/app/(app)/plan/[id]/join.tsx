@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isPaid, useCaps, usePlan, useRequestJoin } from '../../../../src/features/plans/api';
 import { spotsLeft, useActivityMeta } from '../../../../src/features/plans/usePlanMeta';
 import { errorMessage } from '../../../../src/lib/errors';
+import { PAYWALL_ENABLED } from '../../../../src/lib/flags';
 import { formatPlanTime } from '../../../../src/lib/format';
 import { Avatar, Button, colors, EmptyState, Field, gutter, Icon, Notice, radii, SheetHeader, space, Text } from '../../../../src/ui';
 
@@ -51,7 +52,7 @@ export default function JoinSheet() {
     join.mutate(note.trim(), {
       onError: (e) => {
         setError(errorMessage(e));
-        if ((e as { code?: string }).code === 'CAP_REACHED') upgrade();
+        if (PAYWALL_ENABLED && (e as { code?: string }).code === 'CAP_REACHED') upgrade();
       },
     });
   };
@@ -119,7 +120,7 @@ export default function JoinSheet() {
           onPress={submit}
         />
       )}
-      {caps && caps.entitlement !== 'premium' && plan.requires_approval && !outOfJoins ? (
+      {PAYWALL_ENABLED && caps && caps.entitlement !== 'premium' && plan.requires_approval && !outOfJoins ? (
         <Button label="Get picked first with Premium" icon="bolt" variant="ghost" size="sm" onPress={() => router.push({ pathname: '/premium', params: { source: 'priority' } })} />
       ) : null}
     </ScrollView>

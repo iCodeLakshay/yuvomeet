@@ -49,7 +49,7 @@ export default function Rules() {
       {RULES.map((r) => (
         <Card key={r.title}>
           <View style={styles.rule}>
-            <Icon name={r.icon} size={24} color="accent" />
+            <Icon name={r.icon} size={24} color="brand" />
             <View style={styles.flex}>
               <Text variant="bodyStrong">{r.title}</Text>
               <Text variant="small" color="textMuted">

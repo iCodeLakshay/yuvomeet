@@ -7,6 +7,7 @@ import { colors, radii, space, type ColorToken } from './theme';
 
 export interface StatusHeroProps {
   icon: IconName;
+  iconColor?: ColorToken;
   /** Small corner glyph on the ring (lock, check, clock). */
   badge?: IconName;
   badgeColor?: ColorToken;
@@ -17,14 +18,14 @@ export interface StatusHeroProps {
 }
 
 /** Stitch "Under-18 Restriction" layout, reused for every verification and account state. */
-export const StatusHero = memo(function StatusHero({ icon, badge, badgeColor = 'accent', eyebrow, title, body, points }: StatusHeroProps) {
+export const StatusHero = memo(function StatusHero({ icon, iconColor, badge, badgeColor = 'brand', eyebrow, title, body, points }: StatusHeroProps) {
   return (
     <Animated.View entering={FadeIn.duration(240)} style={styles.wrap}>
       <Animated.View entering={ZoomIn.springify().damping(16)} style={styles.ring}>
-        <Icon name={icon} size={44} />
+        <Icon name={icon} size={52} color={iconColor} />
         {badge ? (
           <View style={[styles.badge, { backgroundColor: colors[badgeColor] }]}>
-            <Icon name={badge} size={14} color="bg" />
+            <Icon name={badge} size={16} color="bg" />
           </View>
         ) : null}
       </Animated.View>
@@ -47,7 +48,7 @@ export const StatusHero = memo(function StatusHero({ icon, badge, badgeColor = '
         <View style={styles.points}>
           {points.map((p) => (
             <View key={p.text} style={styles.point}>
-              <Icon name={p.icon} size={20} color="textMuted" />
+              <Icon name={p.icon} size={24} color="textMuted" />
               <Text variant="small" color="textMuted" style={styles.flex}>
                 {p.text}
               </Text>

@@ -39,14 +39,28 @@ export function dayOptions(now = Date.now()): DayOption[] {
 }
 
 /**
- * Whether a plan of `durationMin` can start at `minutes` on the day: from 06:00 IST, at least
- * the lead time away (S-31), and ending by the cutoff unless the venue allows late events (S-32).
+ * Why a plan of `durationMin` cannot start at `minutes` on the day, or null when it can: from
+ * 06:00 IST, at least the lead time away (S-31), and ending by the cutoff unless the venue
+ * allows late events (S-32). The messages are shown to the host as written.
  */
-export function isStartAllowed(dayKey: number, minutes: number, durationMin: number, now = Date.now(), lateAllowed = false): boolean {
-  if (minutes < 6 * 60) return false;
+export function startProblem(dayKey: number, minutes: number, durationMin: number, now = Date.now(), lateAllowed = false): string | null {
+  if (minutes < 6 * 60) return 'Plans start at 6:00 AM or later.';
   const lastEnd = (lateAllowed ? 24 : PLAN_CUTOFF_LOCAL_HOUR) * 60;
-  if (minutes + durationMin > lastEnd) return false;
-  return dayKey + minutes * 60_000 >= now + PLAN_MIN_LEAD_HOURS * 3_600_000;
+  if (minutes + durationMin > lastEnd) {
+    return `Plans must end by ${minutesLabel(lastEnd % (24 * 60))} at this venue. Pick an earlier start or a shorter duration.`;
+  }
+  if (dayKey + minutes * 60_000 < now + PLAN_MIN_LEAD_HOURS * 3_600_000) {
+    return `Plans must start at least ${PLAN_MIN_LEAD_HOURS} hours from now.`;
+  }
+  return null;
+}
+
+export const isStartAllowed = (...args: Parameters<typeof startProblem>) => startProblem(...args) === null;
+
+/** First start time (every 30 minutes) that is allowed on the day, to open the clock on. */
+export function suggestStart(dayKey: number, durationMin: number, now = Date.now(), lateAllowed = false): number | null {
+  for (let m = 6 * 60; m < 24 * 60; m += 30) if (isStartAllowed(dayKey, m, durationMin, now, lateAllowed)) return m;
+  return null;
 }
 
 /** Start times every 30 minutes from 07:00 IST that still respect the lead time (S-31). */

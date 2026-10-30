@@ -24,7 +24,7 @@ export default function Help() {
       <View style={styles.rules}>
         {RULES.map((r) => (
           <View key={r.title} style={styles.rule}>
-            <Icon name={r.icon} size={22} color="accent" />
+            <Icon name={r.icon} size={22} color="brand" />
             <View style={styles.flex}>
               <Text variant="bodyStrong">{r.title}</Text>
               <Text variant="small" color="textMuted">

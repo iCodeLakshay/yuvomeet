@@ -28,6 +28,17 @@ export const MIN_APPEAL_CHARS = 10; // VR-6
 export const MAX_APPEAL_CHARS = 1000;
 export const FEED_PAGE_SIZE = 20; // architecture.md §Feed
 export const SIGNED_URL_TTL_SEC = 60; // S-22
+/** Largest stored image. Matches the `quarantine` and `media` bucket file_size_limit. */
+export const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
+/** Largest photo the app will try to open before re-encoding (phone cameras exceed 8 MB). */
+export const MAX_PICK_BYTES = 25 * 1024 * 1024;
+/**
+ * Formats the app accepts from the gallery or camera. Every one is decoded on the device and
+ * re-encoded to JPEG (EXIF dropped) before upload, so storage and moderation only ever see
+ * JPEG. HEIC/HEIF come from iPhone cameras; AVIF needs Android 12+ / iOS 16+ to decode.
+ */
+export const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif', 'image/heic', 'image/heif'] as const;
+export const ACCEPTED_IMAGE_LABEL = 'JPEG, PNG, WebP, GIF or AVIF';
 export const EMERGENCY_HELPLINE = '112'; // SF-3
 export const TIMEZONE = 'Asia/Kolkata';
 export const POLICY_VERSION = '2026-10';

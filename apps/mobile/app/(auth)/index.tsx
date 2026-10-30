@@ -5,7 +5,7 @@ import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated'
 import { HeroShell } from '../../src/features/auth/HeroShell';
 import { signInWithGoogle } from '../../src/features/session/auth';
 import { errorMessage } from '../../src/lib/errors';
-import { Button, colors, gutter, notify, Pressable, space, Text } from '../../src/ui';
+import { Button, colors, GoogleLogo, gutter, notify, Pressable, space, Text } from '../../src/ui';
 
 const SLIDES = [
   { title: 'Real people.\nReal plans.', body: 'Skip the swiping. Join small group plans at public cafés and spots around Kota.' },
@@ -53,13 +53,7 @@ export default function Welcome() {
   );
 
   return (
-    <HeroShell
-      topRight={
-        <Pressable onPress={() => router.push('/age')} accessibilityLabel="Skip" style={styles.skip}>
-          <Text variant="smallStrong">Skip</Text>
-        </Pressable>
-      }
-    >
+    <HeroShell>
       <FlatList
         data={SLIDES}
         horizontal
@@ -75,7 +69,7 @@ export default function Welcome() {
           <Dot key={s.title} active={i === index} />
         ))}
       </View>
-      <Button label="Continue with Google" icon="account-circle" loading={google} onPress={onGoogle} />
+      <Button label="Continue with Google" leading={<GoogleLogo size={20} />} loading={google} onPress={onGoogle} />
       <View style={styles.alt}>
         <Button label="Phone" icon="smartphone" variant="secondary" style={styles.flex} onPress={() => router.push('/age')} />
         <Button label="Email" icon="mail-outline" variant="secondary" style={styles.flex} onPress={() => router.push({ pathname: '/email', params: { mode: 'signup' } })} />
@@ -90,15 +84,6 @@ export default function Welcome() {
 }
 
 const styles = StyleSheet.create({
-  skip: {
-    paddingHorizontal: space.lg,
-    minHeight: 36,
-    justifyContent: 'center',
-    borderRadius: 18,
-    backgroundColor: colors.scrim,
-    borderWidth: 1,
-    borderColor: colors.borderStrong,
-  },
   dots: { flexDirection: 'row', justifyContent: 'center', gap: space.sm },
   dot: { height: 7, borderRadius: 4, backgroundColor: colors.primary },
   login: { minHeight: 44, justifyContent: 'center' },
