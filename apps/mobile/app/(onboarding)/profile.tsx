@@ -42,19 +42,20 @@ export default function ProfileBasics() {
   const ageShown = ageText ?? (me.birth_year ? String(new Date().getFullYear() - me.birth_year) : '');
   const ageError = ageShown && !ageValid ? (age < 18 ? 'Yuvomeet is for members 18 and older.' : 'Enter your age in years.') : null;
 
+  const typedArea = chosenArea.trim();
   const typedCollege = collegeName.trim();
-  const areaError = chosenArea ? checkText(chosenArea, 'Area', 2, 40) : null;
+  const areaError = checkText(typedArea, 'Area', 2, 40);
   const collegeError = typedCollege ? checkText(typedCollege, 'College', 2, 80) : null;
 
   const submit = async () => {
-    const cell = areaCell(chosenArea);
+    const cell = areaCell(typedArea);
     if (!cell || !chosenGender || !ageValid || areaError || collegeError) return;
     try {
       await save.mutateAsync({
         firstName: name.trim(),
         age,
         gender: chosenGender,
-        area: { name: chosenArea.trim(), cell },
+        area: { name: typedArea, cell },
         collegeId: typedCollege ? null : college,
         collegeName: typedCollege,
       });
@@ -72,7 +73,7 @@ export default function ProfileBasics() {
       cta="Continue"
       onCta={submit}
       busy={save.isPending}
-      ctaDisabled={!name || Boolean(nameError) || !ageValid || !chosenGender || !chosenArea || Boolean(areaError) || Boolean(collegeError)}
+      ctaDisabled={!name || Boolean(nameError) || !ageValid || !chosenGender || Boolean(areaError) || Boolean(collegeError)}
       footerNote={
         <View style={styles.note}>
           <Icon name="lock-outline" size={16} color="textSubtle" />

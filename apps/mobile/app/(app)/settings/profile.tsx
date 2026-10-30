@@ -23,11 +23,12 @@ export default function EditProfile() {
   const nameError = checkText(firstName, 'First name', 2, 30);
 
   const submit = () => {
+    const typedArea = area.trim();
     const typedCollege = collegeName.trim();
     const problem =
       nameError ||
-      (bio.trim() ? checkText(bio, 'Bio', 0, MAX_BIO_CHARS) : null) ||
-      checkText(area, 'Area', 2, 40) ||
+      (bio.trim() ? checkText(bio.trim(), 'Bio', 0, MAX_BIO_CHARS) : null) ||
+      checkText(typedArea, 'Area', 2, 40) ||
       (typedCollege ? checkText(typedCollege, 'College', 2, 80) : null) ||
       (interests.length < MIN_INTERESTS ? `Pick at least ${MIN_INTERESTS} interests.` : null);
     setError(problem);
@@ -36,7 +37,7 @@ export default function EditProfile() {
       {
         firstName: firstName.trim(),
         bio: bio.trim(),
-        area: { name: area.trim(), cell: areaCell(area)! },
+        area: { name: typedArea, cell: areaCell(typedArea)! },
         collegeId: typedCollege ? null : collegeId,
         collegeName: typedCollege,
         interests,
