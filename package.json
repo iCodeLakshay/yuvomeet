@@ -10,6 +10,8 @@
     "db:types": "supabase gen types typescript --local --schema public > packages/shared/src/database.types.ts",
     "db:test": "supabase test db",
     "functions:check": "cd supabase/functions && deno check */index.ts && deno test _shared/",
+    "android": "pnpm --filter @yuvomeet/mobile android",
+    "start": "pnpm --filter @yuvomeet/mobile start",
     "mobile:start": "pnpm --filter @yuvomeet/mobile start",
     "mobile:android": "pnpm --filter @yuvomeet/mobile android",
     "admin:dev": "pnpm --filter @yuvomeet/admin dev"
@@ -26,10 +28,5 @@
     "patchedDependencies": {
       "expo-modules-core@57.0.24": "patches/expo-modules-core@57.0.24.patch"
     }
-  },
-  "dependencies": {
-    "expo": "~57.0.31",
-    "react": "19.2.3",
-    "react-native": "0.86.3"
   }
 }
