@@ -50,7 +50,7 @@ export default function Account() {
         />
       }
     >
-      {profile.data ? <ProfileHero profile={profile.data} /> : null}
+      {profile.data ? <ProfileHero profile={profile.data} own /> : null}
       {me.bio_status === 'held' ? <Notice tone="warning" text="Your new bio is waiting for a quick review before others can see it." /> : null}
 
       <Card onPress={() => router.push(isVerified(me) ? '/verify/result' : '/verify')} accessibilityLabel={v.title} style={styles.verify}>

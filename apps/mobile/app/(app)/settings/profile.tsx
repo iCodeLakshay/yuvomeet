@@ -17,16 +17,30 @@ export default function EditProfile() {
   const [bio, setBio] = useState(me.bio ?? '');
   const [area, setArea] = useState(me.area_name);
   const [collegeId, setCollegeId] = useState<string | null>(me.college_id);
+  const [collegeName, setCollegeName] = useState('');
   const [interests, setInterests] = useState<string[]>(me.interests);
   const [error, setError] = useState<string | null>(null);
   const nameError = checkText(firstName, 'First name', 2, 30);
 
   const submit = () => {
-    const problem = nameError || (bio.trim() ? checkText(bio, 'Bio', 0, MAX_BIO_CHARS) : null) || (interests.length < MIN_INTERESTS ? `Pick at least ${MIN_INTERESTS} interests.` : null);
+    const typedCollege = collegeName.trim();
+    const problem =
+      nameError ||
+      (bio.trim() ? checkText(bio, 'Bio', 0, MAX_BIO_CHARS) : null) ||
+      checkText(area, 'Area', 2, 40) ||
+      (typedCollege ? checkText(typedCollege, 'College', 2, 80) : null) ||
+      (interests.length < MIN_INTERESTS ? `Pick at least ${MIN_INTERESTS} interests.` : null);
     setError(problem);
     if (problem) return;
     save.mutate(
-      { firstName: firstName.trim(), bio: bio.trim(), area: { name: area, cell: areaCell(area)! }, collegeId, interests },
+      {
+        firstName: firstName.trim(),
+        bio: bio.trim(),
+        area: { name: area.trim(), cell: areaCell(area)! },
+        collegeId: typedCollege ? null : collegeId,
+        collegeName: typedCollege,
+        interests,
+      },
       { onSuccess: () => router.back(), onError: (e) => setError(errorMessage(e)) },
     );
   };
@@ -40,7 +54,7 @@ export default function EditProfile() {
       </View>
       <SectionHeader title="Your area in Kota" small />
       <AreaPicker value={area} onChange={setArea} />
-      <CollegePicker cityId={me.city_id} value={collegeId} onChange={setCollegeId} />
+      <CollegePicker cityId={me.city_id} value={collegeId} custom={collegeName} onChange={setCollegeId} onCustom={setCollegeName} />
       <SectionHeader title="Interests" small />
       <InterestPicker value={interests} onChange={setInterests} />
       {error ? <Notice tone="danger" text={error} /> : null}

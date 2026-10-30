@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "thesvg": {
+      "command": "npx",
+      "args": ["-y", "@thesvg/mcp-server"]
+    }
+  }
+}

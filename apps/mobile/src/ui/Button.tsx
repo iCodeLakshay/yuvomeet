@@ -51,7 +51,7 @@ export const Button = memo(function Button({
   accessibilityLabel,
 }: ButtonProps) {
   const t = tone[variant];
-  const glyph = size === 'sm' ? 20 : 22;
+  const glyph = size === 'sm' ? 15 : 17;
   return (
     <Pressable
       onPress={onPress}

@@ -28,6 +28,7 @@ export default function ProfileBasics() {
   const [gender, setGender] = useState<Enums<'gender'> | null>();
   const [area, setArea] = useState<string>();
   const [collegeId, setCollegeId] = useState<string | null>();
+  const [collegeName, setCollegeName] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const name = firstName ?? me.first_name;
@@ -41,11 +42,22 @@ export default function ProfileBasics() {
   const ageShown = ageText ?? (me.birth_year ? String(new Date().getFullYear() - me.birth_year) : '');
   const ageError = ageShown && !ageValid ? (age < 18 ? 'Yuvomeet is for members 18 and older.' : 'Enter your age in years.') : null;
 
+  const typedCollege = collegeName.trim();
+  const areaError = chosenArea ? checkText(chosenArea, 'Area', 2, 40) : null;
+  const collegeError = typedCollege ? checkText(typedCollege, 'College', 2, 80) : null;
+
   const submit = async () => {
     const cell = areaCell(chosenArea);
-    if (!cell || !chosenGender || !ageValid) return;
+    if (!cell || !chosenGender || !ageValid || areaError || collegeError) return;
     try {
-      await save.mutateAsync({ firstName: name.trim(), age, gender: chosenGender, area: { name: chosenArea, cell }, collegeId: college });
+      await save.mutateAsync({
+        firstName: name.trim(),
+        age,
+        gender: chosenGender,
+        area: { name: chosenArea.trim(), cell },
+        collegeId: typedCollege ? null : college,
+        collegeName: typedCollege,
+      });
       router.push('/photos');
     } catch (e) {
       setError(errorMessage(e));
@@ -60,7 +72,7 @@ export default function ProfileBasics() {
       cta="Continue"
       onCta={submit}
       busy={save.isPending}
-      ctaDisabled={!name || Boolean(nameError) || !ageValid || !chosenGender || !chosenArea}
+      ctaDisabled={!name || Boolean(nameError) || !ageValid || !chosenGender || !chosenArea || Boolean(areaError) || Boolean(collegeError)}
       footerNote={
         <View style={styles.note}>
           <Icon name="lock-outline" size={16} color="textSubtle" />
@@ -111,9 +123,16 @@ export default function ProfileBasics() {
       </View>
 
       <SectionHeader title="Your area in Kota" small />
-      <AreaPicker value={chosenArea} onChange={setArea} />
+      <AreaPicker value={chosenArea} onChange={setArea} error={chosenArea ? areaError : null} />
 
-      <CollegePicker cityId={me.city_id} value={college} onChange={setCollegeId} />
+      <CollegePicker
+        cityId={me.city_id}
+        value={college}
+        custom={collegeName}
+        onChange={setCollegeId}
+        onCustom={setCollegeName}
+        error={collegeError}
+      />
       {error ? <Notice tone="danger" text={error} /> : null}
     </OnboardingShell>
   );

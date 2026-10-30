@@ -105,7 +105,7 @@ export const ToastHost = memo(function ToastHost({ inModal = false }: { inModal?
               accessibilityHint="Double tap to dismiss"
               style={[styles.toast, { borderColor: tone.border }]}
             >
-              <Icon name={tone.icon} size={22} color={tone.color} />
+              <Icon name={tone.icon} size={17} color={tone.color} />
               <View style={styles.copy}>
                 {t.title ? <Text variant="smallStrong">{t.title}</Text> : null}
                 <Text variant="small" color={t.title ? 'textMuted' : 'text'}>

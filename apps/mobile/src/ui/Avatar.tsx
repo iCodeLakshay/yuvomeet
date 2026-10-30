@@ -1,3 +1,4 @@
+import { VerifiedBadgeFillIcon } from '@thesvg/ui-react-native/verified-badge';
 import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { initials } from '../lib/format';
@@ -11,10 +12,12 @@ export interface AvatarProps {
   name?: string | null;
   size?: number;
   verified?: boolean;
+  /** Solid verified-badge fill. Used on the Account photo only; other avatars stay glass. */
+  verifiedFill?: boolean;
   ring?: boolean;
 }
 
-export const Avatar = memo(function Avatar({ path, name, size = 40, verified, ring }: AvatarProps) {
+export const Avatar = memo(function Avatar({ path, name, size = 40, verified, verifiedFill, ring }: AvatarProps) {
   const radius = size / 2;
   // Large enough to read on a 32 px avatar, proportionate on the 120 px profile photo.
   const badge = Math.max(16, Math.round(size * 0.34));
@@ -34,7 +37,11 @@ export const Avatar = memo(function Avatar({ path, name, size = 40, verified, ri
       />
       {verified ? (
         <View style={[styles.badge, { width: badge, height: badge, borderRadius: badge / 2 }]}>
-          <Icon name="verified-badge" size={badge} color="brand" />
+          {verifiedFill ? (
+            <VerifiedBadgeFillIcon size={badge} color={colors.brand} accessibilityElementsHidden importantForAccessibility="no" />
+          ) : (
+            <Icon name="verified-badge" size={badge} color="brand" />
+          )}
         </View>
       ) : null}
     </View>

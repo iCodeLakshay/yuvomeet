@@ -16,7 +16,7 @@ export interface SectionHeaderProps {
 export const SectionHeader = memo(function SectionHeader({ title, icon, meta, right, small }: SectionHeaderProps) {
   return (
     <View style={styles.row}>
-      {icon ? <Icon name={icon} size={20} color="textMuted" /> : null}
+      {icon ? <Icon name={icon} size={15} color="textMuted" /> : null}
       <Text variant={small ? 'label' : 'title3'} color={small ? 'textSubtle' : 'text'} style={styles.flex} accessibilityRole="header">
         {title}
       </Text>

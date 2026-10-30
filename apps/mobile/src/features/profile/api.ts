@@ -7,7 +7,10 @@ import { supabase, type Enums } from '../../lib/supabase';
 import { track } from '../../lib/telemetry';
 import { useSession } from '../session/SessionProvider';
 
-const refreshMe = () => queryClient.invalidateQueries({ queryKey: qk.me });
+const refreshMe = () => {
+  void queryClient.invalidateQueries({ queryKey: qk.me });
+  void queryClient.invalidateQueries({ queryKey: qk.lookups });
+};
 
 /** Lookups change rarely: cached for a day and persisted offline. */
 export function useLookups() {
@@ -76,14 +79,17 @@ export interface ProfilePatch {
   languages?: string[];
   area?: { name: string; cell: string };
   collegeId?: string | null;
+  /** Creates or reuses a college in the member's city when the name is not in the list. */
+  collegeName?: string;
   /** Whole years; the server stores the birth year and lets the ID check overwrite it. */
   age?: number;
 }
 
 export function useSaveProfile() {
   return useMutation({
-    mutationFn: async (patch: ProfilePatch) =>
-      unwrap(
+    mutationFn: async (patch: ProfilePatch) => {
+      const collegeName = patch.collegeName?.trim();
+      return unwrap(
         await supabase.rpc('save_profile', {
           p_first_name: patch.firstName,
           p_declared_gender: patch.gender,
@@ -92,11 +98,13 @@ export function useSaveProfile() {
           p_languages: patch.languages,
           p_area_name: patch.area?.name,
           p_area_cell: patch.area?.cell,
-          p_college_id: patch.collegeId ?? undefined,
-          p_clear_college: patch.collegeId === null,
+          p_college_id: collegeName ? undefined : (patch.collegeId ?? undefined),
+          p_clear_college: !collegeName && patch.collegeId === null,
+          p_college_name: collegeName || undefined,
           p_age: patch.age,
         }),
-      ),
+      );
+    },
     onSuccess: refreshMe,
   });
 }

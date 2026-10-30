@@ -2136,6 +2136,7 @@ export type Database = {
           p_bio?: string
           p_clear_college?: boolean
           p_college_id?: string
+          p_college_name?: string
           p_declared_gender?: Database["public"]["Enums"]["gender"]
           p_first_name?: string
           p_interests?: string[]

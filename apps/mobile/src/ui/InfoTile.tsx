@@ -20,7 +20,7 @@ export const InfoTile = memo(function InfoTile({ icon, label, title, subtitle, r
     <Card>
       <View style={styles.row}>
         <View style={styles.circle}>
-          <Icon name={icon} size={22} />
+          <Icon name={icon} size={17} />
         </View>
         <View style={styles.flex}>
           <Text variant="label" color="textSubtle">

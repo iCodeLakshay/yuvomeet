@@ -43,6 +43,9 @@ export const EMERGENCY_HELPLINE = '112'; // SF-3
 export const TIMEZONE = 'Asia/Kolkata';
 export const POLICY_VERSION = '2026-10';
 
+/** Stored when someone types an area that is not in KOTA_AREAS. Not a real cell; area_cell stays private. */
+export const CUSTOM_AREA_CELL = '883d8b4400fffff';
+
 /** Kota areas: display name plus the coarse H3 res-8 cell stored on the profile (S-18). */
 export const KOTA_AREAS = [
   { name: 'Talwandi', cell: '883d8b4491fffff' },

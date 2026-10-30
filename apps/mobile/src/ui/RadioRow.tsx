@@ -23,7 +23,7 @@ export const RadioRow = memo(function RadioRow({ label, selected, onPress, icon 
       pressScale={0.99}
       style={[styles.row, selected ? styles.selected : null]}
     >
-      {icon ? <Icon name={icon} size={20} color="textMuted" /> : null}
+      {icon ? <Icon name={icon} size={15} color="textMuted" /> : null}
       <Text variant="body" style={styles.flex}>
         {label}
       </Text>

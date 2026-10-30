@@ -37,7 +37,7 @@ export const ListRow = memo(function ListRow({
       {leading ??
         (icon ? (
           <View style={[styles.iconCircle, emphasis ? styles.iconCircleLg : null]}>
-            <Icon name={icon} size={emphasis ? 28 : 24} color={destructive ? 'danger' : (iconColor ?? (emphasis ? 'textMuted' : 'text'))} />
+            <Icon name={icon} size={emphasis ? 23 : 19} color={destructive ? 'danger' : (iconColor ?? (emphasis ? 'textMuted' : 'text'))} />
           </View>
         ) : null)}
       <View style={styles.flex}>
@@ -51,7 +51,7 @@ export const ListRow = memo(function ListRow({
         ) : null}
       </View>
       {trailing}
-      {chevron ? <Icon name="chevron-right" size={22} color="textSubtle" /> : null}
+      {chevron ? <Icon name="chevron-right" size={17} color="textSubtle" /> : null}
     </View>
   );
   return onPress ? (

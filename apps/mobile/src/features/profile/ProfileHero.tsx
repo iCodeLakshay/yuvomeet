@@ -1,7 +1,18 @@
-import { memo, useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { Avatar, Badge, colors, Icon, radii, space, Text, type ColorToken, type IconName } from '../../ui';
-import { useLookups } from './api';
+import { AsteriskFillIcon } from "@thesvg/ui-react-native/asterisk";
+import { memo, useMemo } from "react";
+import { StyleSheet, View } from "react-native";
+import {
+  Avatar,
+  Badge,
+  colors,
+  Icon,
+  radii,
+  space,
+  Text,
+  type ColorToken,
+  type IconName,
+} from "../../ui";
+import { useLookups } from "./api";
 
 export interface ProfileSummary {
   first_name: string | null;
@@ -27,8 +38,13 @@ const StatBar = memo(function StatBar({ stats }: { stats: Stat[] }) {
   return (
     <View style={styles.stats}>
       {stats.map((s, i) => (
-        <View key={s.label} style={[styles.stat, i ? styles.statDivider : null]} accessible accessibilityLabel={`${s.label}: ${s.value}`}>
-          <Text variant="title3" color={s.color ?? 'text'}>
+        <View
+          key={s.label}
+          style={[styles.stat, i ? styles.statDivider : null]}
+          accessible
+          accessibilityLabel={`${s.label}: ${s.value}`}
+        >
+          <Text variant="title3" color={s.color ?? "text"}>
             {s.value}
           </Text>
           <Text variant="caption" color="textSubtle">
@@ -44,25 +60,56 @@ const StatBar = memo(function StatBar({ stats }: { stats: Stat[] }) {
  * Stitch "Public Member Profile" header: photo, name, age band and college, bio, stats and
  * interests. Shared by the member profile and the Account tab (S-18: only public fields).
  */
-export const ProfileHero = memo(function ProfileHero({ profile, mine = [] }: { profile: ProfileSummary; mine?: readonly string[] }) {
+export const ProfileHero = memo(function ProfileHero({
+  profile,
+  mine = [],
+  own,
+}: {
+  profile: ProfileSummary;
+  mine?: readonly string[];
+  /** Account tab: filled verified badge on the photo. Other profiles keep the glass badge. */
+  own?: boolean;
+}) {
   const lookups = useLookups();
   const interests = useMemo(() => {
-    const map = new Map((lookups.data?.interests ?? []).map((i) => [i.slug, i]));
-    return (profile.interests ?? []).map((slug) => ({ slug, label: map.get(slug)?.label ?? slug, icon: (map.get(slug)?.icon ?? 'star') as IconName }));
+    const map = new Map(
+      (lookups.data?.interests ?? []).map((i) => [i.slug, i]),
+    );
+    return (profile.interests ?? []).map((slug) => ({
+      slug,
+      label: map.get(slug)?.label ?? slug,
+      icon: (map.get(slug)?.icon ?? "star") as IconName,
+    }));
   }, [lookups.data, profile.interests]);
-  const common = mine.length ? interests.filter((i) => mine.includes(i.slug)).length : 0;
-  const showUp = profile.show_up_rate == null ? '—' : `${profile.show_up_rate}%`;
+  const common = mine.length
+    ? interests.filter((i) => mine.includes(i.slug)).length
+    : 0;
+  const showUp =
+    profile.show_up_rate == null ? "—" : `${profile.show_up_rate}%`;
+  const ageLabel = profile.age != null ? String(profile.age) : null;
 
   return (
     <View style={styles.wrap}>
-      <Avatar path={profile.photo_paths?.[0]} name={profile.first_name} size={120} verified={Boolean(profile.is_verified)} ring />
-      <View style={styles.names}>
-        <Text variant="title1" align="center">
-          {profile.first_name}
-        </Text>
-        <Text variant="body" color="textMuted" align="center">
-          {[profile.age ? `Age ${profile.age}` : null, profile.college_name].filter(Boolean).join(' · ')}
-        </Text>
+      <Avatar
+        path={profile.photo_paths?.[0]}
+        name={profile.first_name}
+        size={120}
+        verified={Boolean(profile.is_verified)}
+        verifiedFill={own}
+        ring
+      />
+      <View
+        style={styles.titleRow}
+        accessible
+        accessibilityLabel={ageLabel ? `${profile.first_name}, ${ageLabel}` : (profile.first_name ?? '')}
+      >
+        <Text variant="title1">{profile.first_name}</Text>
+        {ageLabel ? (
+          <>
+            <AsteriskFillIcon size={14} color={colors.textSubtle} accessibilityElementsHidden importantForAccessibility="no" />
+            <Text variant="title1">{ageLabel}</Text>
+          </>
+        ) : null}
       </View>
       {profile.bio ? (
         <Text variant="body" color="textMuted" align="center">
@@ -71,17 +118,24 @@ export const ProfileHero = memo(function ProfileHero({ profile, mine = [] }: { p
       ) : null}
       <StatBar
         stats={[
-          { value: String(profile.plans_hosted ?? 0), label: 'Meets hosted' },
-          { value: String(profile.plans_attended ?? 0), label: 'Attended' },
-          { value: showUp, label: 'Show-up', color: profile.show_up_rate != null && profile.show_up_rate >= 90 ? 'success' : 'text' },
+          { value: String(profile.plans_hosted ?? 0), label: "Meets hosted" },
+          { value: String(profile.plans_attended ?? 0), label: "Attended" },
+          {
+            value: showUp,
+            label: "Show-up",
+            color:
+              profile.show_up_rate != null && profile.show_up_rate >= 90
+                ? "success"
+                : "text",
+          },
         ]}
       />
       {interests.length ? (
         <View style={styles.interests}>
           <View style={styles.interestHead}>
-            <Icon name="loyalty" size={28} color="brand" />
+            <Icon name="loyalty" size={23} color="brand" />
             <Text variant="bodyStrong" color="textMuted" style={styles.flex}>
-              {mine.length ? 'Interests' : 'Your interests'}
+              {mine.length ? "Interests" : "Your interests"}
             </Text>
             {common ? <Badge label={`${common} in common`} /> : null}
           </View>
@@ -89,9 +143,19 @@ export const ProfileHero = memo(function ProfileHero({ profile, mine = [] }: { p
             {interests.map((i) => {
               const shared = mine.includes(i.slug);
               return (
-                <View key={i.slug} style={[styles.chip, shared ? styles.chipShared : null]}>
-                  <Icon name={i.icon} size={20} color={shared ? 'brand' : 'textMuted'} />
-                  <Text variant="smallStrong" color={shared ? 'text' : 'textMuted'}>
+                <View
+                  key={i.slug}
+                  style={[styles.chip, shared ? styles.chipShared : null]}
+                >
+                  <Icon
+                    name={i.icon}
+                    size={15}
+                    color={shared ? "brand" : "textMuted"}
+                  />
+                  <Text
+                    variant="smallStrong"
+                    color={shared ? "text" : "textMuted"}
+                  >
                     {i.label}
                   </Text>
                 </View>
@@ -105,26 +169,26 @@ export const ProfileHero = memo(function ProfileHero({ profile, mine = [] }: { p
 });
 
 const styles = StyleSheet.create({
-  wrap: { alignItems: 'center', gap: space.lg, paddingTop: space.lg },
-  names: { gap: space.xs },
+  wrap: { alignItems: "center", gap: space.lg, paddingTop: space.lg },
+  titleRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
   stats: {
-    flexDirection: 'row',
-    alignSelf: 'stretch',
+    flexDirection: "row",
+    alignSelf: "stretch",
     paddingVertical: space.md,
     borderRadius: radii.xl,
     backgroundColor: colors.surface1,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  stat: { flex: 1, alignItems: 'center', gap: 2 },
+  stat: { flex: 1, alignItems: "center", gap: 2 },
   statDivider: { borderLeftWidth: 1, borderLeftColor: colors.border },
-  interests: { alignSelf: 'stretch', gap: space.md },
-  interestHead: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  interests: { alignSelf: "stretch", gap: space.md },
+  interestHead: { flexDirection: "row", alignItems: "center", gap: space.sm },
   flex: { flex: 1 },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  chips: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
   chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: space.sm,
     minHeight: 40,
     paddingHorizontal: space.lg,
@@ -133,5 +197,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  chipShared: { borderColor: 'rgba(234, 179, 8, 0.4)', backgroundColor: colors.accentSoft },
+  chipShared: {
+    borderColor: "rgba(234, 179, 8, 0.4)",
+    backgroundColor: colors.accentSoft,
+  },
 });

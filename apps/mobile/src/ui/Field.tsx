@@ -26,7 +26,7 @@ export const Field = memo(
   ) {
     const body = (
       <View style={[styles.box, multiline ? styles.multi : null, error ? styles.errorBox : null]}>
-        {icon ? <Icon name={icon} size={24} color="textMuted" /> : null}
+        {icon ? <Icon name={icon} size={19} color="textMuted" /> : null}
         <View style={styles.flex}>
           <Text variant="caption" color="textSubtle">
             {label}
@@ -52,10 +52,10 @@ export const Field = memo(
         </View>
         {onClear && value ? (
           <Pressable onPress={onClear} accessibilityLabel={`Clear ${label}`} hitSlop={10}>
-            <Icon name="close" size={20} color="textMuted" />
+            <Icon name="close" size={15} color="textMuted" />
           </Pressable>
         ) : null}
-        {trailingIcon ? <Icon name={trailingIcon} size={24} color={trailingColor} /> : null}
+        {trailingIcon ? <Icon name={trailingIcon} size={19} color={trailingColor} /> : null}
       </View>
     );
 

@@ -66,7 +66,7 @@ export const TabDock = memo(function TabDock({ state, navigation }: TabBarProps)
                 }}
                 style={[styles.tab, focused ? styles.active : null]}
               >
-                <Icon name={tab.icon} size={28} color="brand" />
+                <Icon name={tab.icon} size={23} color="brand" />
               </Pressable>
             );
           })}
