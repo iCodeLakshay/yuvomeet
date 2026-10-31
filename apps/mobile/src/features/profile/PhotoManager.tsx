@@ -1,6 +1,7 @@
 import { MAX_PROFILE_PHOTOS } from '@yuvomeet/shared';
 import { useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { CircleCheckGlassIcon } from '@thesvg/ui-react-native/circle-check';
 import { errorMessage } from '../../lib/errors';
 import { pickImage } from '../../lib/media';
 import { Badge, colors, confirm, Icon, Notice, Pressable, RemoteImage, space, Text, type IconName } from '../../ui';
@@ -105,9 +106,15 @@ export function PhotoManager() {
               style={[styles.thumb, selected?.id === p.id ? styles.thumbOn : null]}
             >
               <RemoteImage path={p.path} style={styles.thumbImage} />
-              <View style={styles.thumbBadge}>
-                <Badge label={s.label} tone={s.tone} />
-              </View>
+              {p.status === 'approved' ? (
+                <View style={styles.thumbApprovedIcon}>
+                  <CircleCheckGlassIcon size={22} color={colors.success} />
+                </View>
+              ) : (
+                <View style={styles.thumbBadge}>
+                  <Badge label={s.label} tone={s.tone} />
+                </View>
+              )}
             </Pressable>
           );
         })}
@@ -161,4 +168,5 @@ const styles = StyleSheet.create({
   thumbImage: { flex: 1 },
   thumbEmpty: { backgroundColor: colors.surface1, borderColor: colors.border, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
   thumbBadge: { position: 'absolute', left: 4, bottom: 4 },
+  thumbApprovedIcon: { position: 'absolute', right: 4, top: 4 },
 });

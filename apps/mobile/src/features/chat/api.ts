@@ -11,11 +11,13 @@ import { startSpan } from '../../lib/telemetry';
 
 export type Message = Pick<
   Tables<'messages'>,
-  'id' | 'conversation_id' | 'sender_id' | 'body' | 'image_path' | 'image_status' | 'status' | 'created_at'
+  'id' | 'conversation_id' | 'sender_id' | 'body' | 'image_path' | 'image_status' | 'status' | 'created_at' | 'reply_to'
 > & { pending?: boolean; failed?: string };
 
+type OutboxItem = Message & { mentionIds?: string[] };
+
 const PAGE = 40;
-const COLUMNS = 'id, conversation_id, sender_id, body, image_path, image_status, status, created_at';
+const COLUMNS = 'id, conversation_id, sender_id, body, image_path, image_status, status, created_at, reply_to';
 
 export function useChats() {
   return useQuery({
@@ -29,14 +31,14 @@ export function useChats() {
 // -----------------------------------------------------------------------------
 const outboxKey = (conversationId: string) => `outbox.${conversationId}`;
 const listeners = new Set<() => void>();
-const cache = new Map<string, Message[]>();
+const cache = new Map<string, OutboxItem[]>();
 
-function readOutbox(conversationId: string): Message[] {
-  if (!cache.has(conversationId)) cache.set(conversationId, readJson<Message[]>(outboxKey(conversationId), []));
+function readOutbox(conversationId: string): OutboxItem[] {
+  if (!cache.has(conversationId)) cache.set(conversationId, readJson<OutboxItem[]>(outboxKey(conversationId), []));
   return cache.get(conversationId)!;
 }
 
-function writeOutbox(conversationId: string, items: Message[]) {
+function writeOutbox(conversationId: string, items: OutboxItem[]) {
   cache.set(conversationId, items);
   if (items.length) writeJson(outboxKey(conversationId), items);
   else storage.remove(outboxKey(conversationId));
@@ -70,7 +72,13 @@ async function flushOutbox(conversationId: string) {
     const done = startSpan('chat_delivery');
     const { data, error } = await supabase
       .from('messages')
-      .insert({ id: item.id, conversation_id: conversationId, sender_id: item.sender_id, body: item.body })
+      .insert({
+        id: item.id,
+        conversation_id: conversationId,
+        sender_id: item.sender_id,
+        body: item.body,
+        reply_to: item.reply_to ?? null,
+      })
       .select(COLUMNS)
       .single();
     if (error && error.code !== '23505') {
@@ -79,9 +87,13 @@ async function flushOutbox(conversationId: string) {
       writeOutbox(conversationId, readOutbox(conversationId).map((m) => (m.id === item.id ? { ...m, failed: appError.message } : m)));
       continue;
     }
+    if (data) upsertMessage(conversationId, data);
+    if (item.mentionIds?.length) {
+      const mention = await supabase.rpc('notify_mentions', { p_message_id: item.id, p_user_ids: item.mentionIds });
+      if (mention.error && toAppError(mention.error).code === 'NETWORK') return;
+    }
     done();
     writeOutbox(conversationId, readOutbox(conversationId).filter((m) => m.id !== item.id));
-    if (data) upsertMessage(conversationId, data);
   }
 }
 
@@ -146,8 +158,13 @@ export function useMessages(conversationId: string) {
   return { ...query, messages };
 }
 
-export function sendMessage(conversationId: string, senderId: string, body: string) {
-  const message: Message = {
+export function sendMessage(
+  conversationId: string,
+  senderId: string,
+  body: string,
+  options?: { replyTo?: string | null; mentionIds?: string[] },
+) {
+  const message: OutboxItem = {
     id: Crypto.randomUUID(),
     conversation_id: conversationId,
     sender_id: senderId,
@@ -155,7 +172,9 @@ export function sendMessage(conversationId: string, senderId: string, body: stri
     image_path: null,
     image_status: null,
     status: 'visible',
+    reply_to: options?.replyTo ?? null,
     created_at: new Date().toISOString(),
+    mentionIds: options?.mentionIds?.length ? options.mentionIds : undefined,
   };
   writeOutbox(conversationId, [...readOutbox(conversationId), message]);
   void flushOutbox(conversationId);
@@ -222,6 +241,49 @@ export function useConversation(conversationId: string) {
     queryKey: ['conversation', conversationId],
     queryFn: async () =>
       unwrapMaybe(await supabase.from('my_chats').select('*').eq('conversation_id', conversationId).maybeSingle()),
+  });
+}
+
+export function useReactions(conversationId: string) {
+  const query = useQuery({
+    queryKey: ['reactions', conversationId],
+    queryFn: async () =>
+      unwrap(await supabase.from('message_reactions').select('message_id, user_id, emoji').eq('conversation_id', conversationId)),
+  });
+
+  useEffect(() => {
+    const channel = supabase
+      .channel(`reactions:${conversationId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'message_reactions', filter: `conversation_id=eq.${conversationId}` },
+        () => {
+          void queryClient.invalidateQueries({ queryKey: ['reactions', conversationId] });
+        },
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [conversationId]);
+
+  return query;
+}
+
+export function useSetReaction(conversationId: string) {
+  return useMutation({
+    mutationFn: async ({ messageId, emoji }: { messageId: string; emoji: string }) =>
+      unwrap(await supabase.rpc('set_message_reaction', { p_message_id: messageId, p_emoji: emoji })),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['reactions', conversationId] }),
+  });
+}
+
+/** The two people in a direct chat. Plan groups keep using the plan roster. */
+export function usePairMembers(conversationId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ['pair-members', conversationId],
+    enabled,
+    queryFn: async () => unwrap(await supabase.from('pair_members').select('*').eq('conversation_id', conversationId)),
   });
 }
 

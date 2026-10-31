@@ -16,6 +16,20 @@ export type Database = {
         Update: { created_at?: string; message_id?: string; user_id?: string }
         Relationships: []
       }
+      message_mentions: {
+        Row: { created_at: string; message_id: string; user_id: string }
+        ComputedFields: never
+        Insert: { created_at?: string; message_id: string; user_id: string }
+        Update: { created_at?: string; message_id?: string; user_id?: string }
+        Relationships: []
+      }
+      message_reactions: {
+        Row: { conversation_id: string; created_at: string; emoji: string; message_id: string; user_id: string }
+        ComputedFields: never
+        Insert: { conversation_id: string; created_at?: string; emoji: string; message_id: string; user_id: string }
+        Update: { conversation_id?: string; created_at?: string; emoji?: string; message_id?: string; user_id?: string }
+        Relationships: []
+      }
       payout_accounts: {
         Row: { holder_name: string; updated_at: string; upi_id: string; user_id: string }
         ComputedFields: never
@@ -571,6 +585,43 @@ export type Database = {
           },
         ]
       }
+      friendships: {
+        Row: {
+          addressee_id: string
+          conversation_id: string | null
+          created_at: string
+          id: string
+          pair_high: string
+          pair_low: string
+          requester_id: string
+          status: "pending" | "accepted" | "declined"
+          updated_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          addressee_id: string
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          pair_high?: string
+          pair_low?: string
+          requester_id: string
+          status?: "pending" | "accepted" | "declined"
+          updated_at?: string
+        }
+        Update: {
+          addressee_id?: string
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          pair_high?: string
+          pair_low?: string
+          requester_id?: string
+          status?: "pending" | "accepted" | "declined"
+          updated_at?: string
+        }
+        Relationships: []
+      }
       interests: {
         Row: {
           icon: string
@@ -602,6 +653,7 @@ export type Database = {
           id: string
           image_path: string | null
           image_status: Database["public"]["Enums"]["media_status"] | null
+          reply_to: string | null
           sender_id: string | null
           status: Database["public"]["Enums"]["content_status"]
         }
@@ -614,6 +666,7 @@ export type Database = {
           id: string
           image_path?: string | null
           image_status?: Database["public"]["Enums"]["media_status"] | null
+          reply_to?: string | null
           sender_id?: string | null
           status?: Database["public"]["Enums"]["content_status"]
         }
@@ -625,6 +678,7 @@ export type Database = {
           id?: string
           image_path?: string | null
           image_status?: Database["public"]["Enums"]["media_status"] | null
+          reply_to?: string | null
           sender_id?: string | null
           status?: Database["public"]["Enums"]["content_status"]
         }
@@ -724,8 +778,10 @@ export type Database = {
       }
       notifications: {
         Row: {
+          actor_id: string | null
           body: string
           category: Database["public"]["Enums"]["notification_category"]
+          conversation_id: string | null
           created_at: string
           id: string
           kind: string
@@ -736,8 +792,10 @@ export type Database = {
         }
         ComputedFields: never
         Insert: {
+          actor_id?: string | null
           body: string
           category: Database["public"]["Enums"]["notification_category"]
+          conversation_id?: string | null
           created_at?: string
           id?: string
           kind: string
@@ -747,8 +805,10 @@ export type Database = {
           user_id: string
         }
         Update: {
+          actor_id?: string | null
           body?: string
           category?: Database["public"]["Enums"]["notification_category"]
+          conversation_id?: string | null
           created_at?: string
           id?: string
           kind?: string
@@ -1047,6 +1107,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      profile_likes: {
+        Row: { created_at: string; liked_id: string; liker_id: string }
+        ComputedFields: never
+        Insert: { created_at?: string; liked_id: string; liker_id: string }
+        Update: { created_at?: string; liked_id?: string; liker_id?: string }
+        Relationships: []
       }
       profile_stats: {
         Row: {
@@ -1785,6 +1852,7 @@ export type Database = {
           status: Database["public"]["Enums"]["conversation_status"] | null
           title: string | null
           venue_name: string | null
+          kind: Database["public"]["Enums"]["conversation_kind"] | null
         }
         ComputedFields: never
         Relationships: [
@@ -1828,6 +1896,18 @@ export type Database = {
           type?: Database["public"]["Enums"]["check_type"] | null
           verdict?: Database["public"]["Enums"]["verdict"] | null
         }
+        Relationships: []
+      }
+      pair_members: {
+        Row: {
+          conversation_id: string | null
+          first_name: string | null
+          is_host: boolean | null
+          is_verified: boolean | null
+          photo_path: string | null
+          user_id: string | null
+        }
+        ComputedFields: never
         Relationships: []
       }
       plan_cards: {
@@ -2088,6 +2168,12 @@ export type Database = {
         Returns: undefined
       }
       block_user: { Args: { p_target_user_id: string }; Returns: undefined }
+      like_profile: { Args: { p_user_id: string }; Returns: undefined }
+      notify_mentions: { Args: { p_message_id: string; p_user_ids: string[] }; Returns: undefined }
+      respond_friend_request: { Args: { p_accept: boolean; p_user_id: string }; Returns: string | null }
+      send_friend_request: { Args: { p_user_id: string }; Returns: undefined }
+      set_message_reaction: { Args: { p_emoji: string; p_message_id: string }; Returns: string | null }
+      unlike_profile: { Args: { p_user_id: string }; Returns: undefined }
       cancel_plan: {
         Args: { p_plan_id: string; p_reason: string }
         Returns: boolean

@@ -1,9 +1,10 @@
 import { FlashList } from '@shopify/flash-list';
 import { router } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useAskLocation, usePlace } from '../../../src/features/location/api';
+import { usePlace } from '../../../src/features/location/api';
+import { PlacePicker } from '../../../src/features/location/PlacePicker';
 import { useUnreadCount } from '../../../src/features/notifications/api';
 import { useFeed, type PlanCard as Plan } from '../../../src/features/plans/api';
 import { PlanCard } from '../../../src/features/plans/PlanCard';
@@ -40,7 +41,7 @@ export default function Discover() {
   const lookups = useLookups();
   const unread = useUnreadCount();
   const place = usePlace();
-  const askLocation = useAskLocation();
+  const [pickerVisible, setPickerVisible] = useState(false);
   const cities = useCities();
   const homeCity = cities.data?.find((c) => c.id === me?.city_id)?.name ?? null;
   const placeLabel = place.data?.label ?? (homeCity ? `${homeCity}, India` : 'Set your location');
@@ -100,8 +101,8 @@ export default function Discover() {
       <View style={styles.top}>
         <View style={styles.cityRow}>
           <Pressable
-            onPress={() => (place.data ? void place.refetch() : askLocation.mutate())}
-            accessibilityLabel={place.data ? `Location: ${place.data.label}. Tap to refresh` : 'Use my current location'}
+            onPress={() => setPickerVisible(true)}
+            accessibilityLabel={`Location: ${placeLabel}. Tap to change area`}
             style={styles.place}
           >
             <View style={styles.navIcon}>
@@ -112,7 +113,7 @@ export default function Discover() {
                 {placeLabel}
               </Text>
               <Text variant="caption" color="textSubtle" numberOfLines={1}>
-                {!place.data && !place.isLoading ? 'Tap to use your current location' : verified ? 'Verified 18+ member' : 'Browsing · verify to join plans'}
+                {place.data ? (verified ? 'Verified 18+ member' : 'Browsing · verify to join plans') : 'Tap to set your area'}
               </Text>
             </View>
           </Pressable>
@@ -138,6 +139,8 @@ export default function Discover() {
           </Pressable>
         </View>
       </View>
+
+      <PlacePicker visible={pickerVisible} onClose={() => setPickerVisible(false)} />
 
       <FlashList
         data={plans}

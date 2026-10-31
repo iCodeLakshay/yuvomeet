@@ -10,13 +10,15 @@ import { Badge, colors, DOCK_HEIGHT, EmptyState, gutter, Header, Icon, Pressable
 type Chat = NonNullable<ReturnType<typeof useChats>['data']>[number];
 
 function preview(c: Chat) {
-  if (!c.last_at) return 'Say hi to the group before you meet.';
+  if (!c.last_at) return c.kind === 'pair' ? 'Say hi.' : 'Say hi to the group before you meet.';
   const who = c.last_is_mine ? 'You' : (c.last_sender_name ?? 'Member');
   return `${who}: ${c.last_is_photo ? 'Photo' : (c.last_body ?? '')}`;
 }
 
 const ChatRow = memo(function ChatRow({ chat, onOpen }: { chat: Chat; onOpen: (id: string) => void }) {
   const closed = chat.status === 'closed';
+  const pair = chat.kind === 'pair';
+  const meta = pair ? 'Direct chat' : chat.starts_at ? `${formatPlanTime(chat.starts_at)} • ${chat.venue_name ?? ''}` : '';
   return (
     <Pressable onPress={() => onOpen(chat.conversation_id!)} accessibilityLabel={`${chat.title}. ${preview(chat)}`} pressScale={0.99} style={styles.row}>
       <RemoteImage
@@ -24,7 +26,7 @@ const ChatRow = memo(function ChatRow({ chat, onOpen }: { chat: Chat; onOpen: (i
         style={styles.cover}
         fallback={
           <View style={styles.coverFallback}>
-            <Icon name="groups" size={24} color="textSubtle" />
+            <Icon name={pair ? 'person-outline' : 'groups'} size={24} color="textSubtle" />
           </View>
         }
       />
@@ -43,10 +45,14 @@ const ChatRow = memo(function ChatRow({ chat, onOpen }: { chat: Chat; onOpen: (i
           {preview(chat)}
         </Text>
         <View style={styles.metaRow}>
-          <Text variant="caption" color="textSubtle" numberOfLines={1} style={styles.flex}>
-            {formatPlanTime(chat.starts_at!)} • {chat.venue_name}
-          </Text>
-          {closed ? <Badge label="Closed" /> : <Badge label={`${chat.approved_count ?? 0} going`} tone="success" dot />}
+          {meta ? (
+            <Text variant="caption" color="textSubtle" numberOfLines={1} style={styles.flex}>
+              {meta}
+            </Text>
+          ) : (
+            <View style={styles.flex} />
+          )}
+          {closed ? <Badge label="Closed" /> : pair ? null : <Badge label={`${chat.approved_count ?? 0} going`} tone="success" dot />}
         </View>
       </View>
     </Pressable>

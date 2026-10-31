@@ -147,6 +147,7 @@ export function useMyPlans(userId: string) {
 export function useRoster(planId: string) {
   return useQuery({
     queryKey: qk.roster(planId),
+    enabled: planId.length > 0,
     queryFn: async () => unwrap(await supabase.from('plan_roster').select('*').eq('plan_id', planId).order('is_host', { ascending: false })),
   });
 }

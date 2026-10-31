@@ -1,8 +1,11 @@
 import { memo, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { formatTime } from '../../lib/format';
 import { Avatar, colors, Icon, Pressable, radii, RemoteImage, space, Text } from '../../ui';
 import type { Message } from './api';
+import { splitMentions } from './mentions';
 
 export interface Sender {
   first_name: string | null;
@@ -17,15 +20,32 @@ export interface Anchor {
   height: number;
 }
 
+export interface Quote {
+  name: string;
+  text: string;
+}
+
+export interface ReactionChip {
+  emoji: string;
+  count: number;
+  mine: boolean;
+}
+
 export interface MessageBubbleProps {
   message: Message;
   mine: boolean;
   sender?: Sender;
   /** First message of a run from the same sender: shows the avatar and name. */
   first: boolean;
+  names: string[];
+  quote?: Quote;
+  reactions: ReactionChip[];
   onLongPress: (message: Message, anchor: Anchor) => void;
   onRetry: (message: Message) => void;
   onOpenImage: (path: string) => void;
+  onOpenProfile: (userId: string) => void;
+  onReply: (message: Message) => void;
+  onReact: (message: Message, emoji: string) => void;
   selecting: boolean;
   selected: boolean;
   onToggleSelect: (message: Message) => void;
@@ -58,14 +78,37 @@ function Photo({ path, pending, revealed }: { path: string | null; pending: bool
   );
 }
 
+function MessageBody({ body, mine, names }: { body: string; mine: boolean; names: string[] }) {
+  const parts = splitMentions(body, names);
+  return (
+    <Text variant="body" color={mine ? 'onPrimary' : 'text'}>
+      {parts.map((part, index) =>
+        part.mention ? (
+          <Text key={`${index}-${part.text}`} variant="body" color="accent">
+            {part.text}
+          </Text>
+        ) : (
+          part.text
+        ),
+      )}
+    </Text>
+  );
+}
+
 export const MessageBubble = memo(function MessageBubble({
   message,
   mine,
   sender,
   first,
+  names,
+  quote,
+  reactions,
   onLongPress,
   onRetry,
   onOpenImage,
+  onOpenProfile,
+  onReply,
+  onReact,
   selecting,
   selected,
   onToggleSelect,
@@ -74,6 +117,25 @@ export const MessageBubble = memo(function MessageBubble({
   const name = sender?.first_name ?? (message.sender_id ? 'Member' : 'Former member');
   const [revealed, setRevealed] = useState(false);
   const bubbleRef = useRef<View>(null);
+  const drag = useSharedValue(0);
+  const canReply = !selecting && !message.pending && !message.failed;
+
+  const reply = () => {
+    if (canReply) onReply(message);
+  };
+  const pan = Gesture.Pan()
+    .enabled(canReply)
+    .activeOffsetX([-18, 18])
+    .failOffsetY([-16, 16])
+    .onUpdate((e) => {
+      drag.set(Math.max(-80, Math.min(80, e.translationX)));
+    })
+    .onEnd((e) => {
+      const fired = Math.abs(e.translationX) > 56;
+      drag.set(withTiming(0));
+      if (fired) runOnJS(reply)();
+    });
+  const slide = useAnimatedStyle(() => ({ transform: [{ translateX: drag.get() }] }));
 
   const onPress = () => {
     if (selecting) return onToggleSelect(message);
@@ -89,6 +151,10 @@ export const MessageBubble = memo(function MessageBubble({
     bubbleRef.current?.measureInWindow((x, y, width, height) => onLongPress(message, { x, y, width, height }));
   };
 
+  const openProfile = () => {
+    if (!mine && message.sender_id) onOpenProfile(message.sender_id);
+  };
+
   const rowStyle = [styles.row, mine ? styles.rowMine : null, first ? styles.rowFirst : null, selected ? styles.rowSelected : null];
   const content = (
     <>
@@ -100,7 +166,11 @@ export const MessageBubble = memo(function MessageBubble({
       {!mine ? (
         <View style={styles.avatarSlot}>
           {first ? (
-            <>
+            <Pressable
+              onPress={() => message.sender_id && onOpenProfile(message.sender_id)}
+              pressScale={0.96}
+              accessibilityLabel={`Open ${name}'s profile`}
+            >
               <Avatar path={sender?.photo_path} name={name} size={36} />
               {sender?.is_host ? (
                 <View style={styles.hostTag}>
@@ -109,39 +179,77 @@ export const MessageBubble = memo(function MessageBubble({
                   </Text>
                 </View>
               ) : null}
-            </>
+            </Pressable>
           ) : null}
         </View>
       ) : null}
       <View style={[styles.column, mine ? styles.columnMine : null]}>
         {first ? (
           <View style={styles.meta}>
-            {!mine ? <Text variant="smallStrong">{name}</Text> : null}
+            {!mine ? (
+              <Pressable onPress={openProfile} pressScale={0.98} accessibilityLabel={`Open ${name}'s profile`}>
+                <Text variant="smallStrong">{name}</Text>
+              </Pressable>
+            ) : null}
             <Text variant="caption" color="textSubtle">
               {formatTime(message.created_at)}
             </Text>
             {mine && !message.pending ? <Icon name="done-all" size={14} color="textSubtle" /> : null}
           </View>
         ) : null}
-        <View ref={bubbleRef} collapsable={false}>
-          <Pressable
-            onLongPress={longPress}
-            onPress={onPress}
-            delayLongPress={300}
-            pressScale={0.98}
-            accessibilityLabel={`${mine ? 'You' : name}: ${isPhoto ? 'photo' : message.body}`}
-            accessibilityHint={isPhoto && revealed ? 'Tap to open full screen. Long press for options' : 'Long press for options'}
-            style={[styles.bubble, mine ? styles.mine : styles.theirs, isPhoto ? styles.bubblePhoto : null, message.pending ? styles.pending : null]}
-          >
-            {isPhoto ? (
-              <Photo path={message.image_path} pending={message.image_status === 'pending'} revealed={revealed} />
-            ) : (
-              <Text variant="body" color={mine ? 'onPrimary' : 'text'}>
-                {message.body}
-              </Text>
-            )}
-          </Pressable>
-        </View>
+        <GestureDetector gesture={pan}>
+          <Animated.View style={slide}>
+            <View ref={bubbleRef} collapsable={false}>
+              <Pressable
+                onLongPress={longPress}
+                onPress={onPress}
+                delayLongPress={300}
+                pressScale={0.98}
+                accessibilityLabel={`${mine ? 'You' : name}: ${isPhoto ? 'photo' : message.body}`}
+                accessibilityHint={isPhoto && revealed ? 'Tap to open full screen. Long press for options' : 'Long press for options. Swipe to reply'}
+                style={[styles.bubble, mine ? styles.mine : styles.theirs, isPhoto ? styles.bubblePhoto : null, message.pending ? styles.pending : null]}
+              >
+                <View style={styles.bubbleInner}>
+                  {quote ? (
+                    <View style={[styles.quote, { borderLeftColor: mine ? colors.onPrimary : colors.accent }]}>
+                      <Text variant="caption" color={mine ? 'onPrimary' : 'accent'} numberOfLines={1}>
+                        {quote.name}
+                      </Text>
+                      <Text variant="caption" color={mine ? 'onPrimary' : 'textMuted'} numberOfLines={1}>
+                        {quote.text}
+                      </Text>
+                    </View>
+                  ) : null}
+                  {isPhoto ? (
+                    <Photo path={message.image_path} pending={message.image_status === 'pending'} revealed={revealed} />
+                  ) : (
+                    <MessageBody body={message.body ?? ''} mine={mine} names={names} />
+                  )}
+                </View>
+              </Pressable>
+            </View>
+          </Animated.View>
+        </GestureDetector>
+        {reactions.length > 0 ? (
+          <View style={styles.reactions}>
+            {reactions.map((chip) => (
+              <Pressable
+                key={chip.emoji}
+                onPress={() => onReact(message, chip.emoji)}
+                pressScale={0.96}
+                accessibilityLabel={`${chip.emoji}, ${chip.count}${chip.mine ? ', yours' : ''}`}
+                style={[styles.chip, chip.mine ? styles.chipMine : null]}
+              >
+                <Text style={styles.chipEmoji}>{chip.emoji}</Text>
+                {chip.count > 1 ? (
+                  <Text variant="caption" color={chip.mine ? 'onPrimary' : 'textMuted'}>
+                    {chip.count}
+                  </Text>
+                ) : null}
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
         {message.failed ? (
           <Text variant="caption" color="danger">
             Not sent: {message.failed} Tap to retry, long press for options.
@@ -151,7 +259,6 @@ export const MessageBubble = memo(function MessageBubble({
     </>
   );
 
-  // In select mode the whole row toggles; otherwise only the bubble is interactive.
   return selecting ? (
     <Pressable onPress={() => onToggleSelect(message)} pressScale={1} accessibilityState={{ selected }} accessibilityLabel={selected ? 'Selected message' : 'Message'} style={rowStyle}>
       {content}
@@ -174,6 +281,8 @@ const styles = StyleSheet.create({
   columnMine: { alignItems: 'flex-end' },
   meta: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   bubble: { paddingHorizontal: space.lg, paddingVertical: space.md, borderRadius: radii.xl },
+  bubbleInner: { gap: space.xs },
+  quote: { borderLeftWidth: 2, paddingLeft: space.sm, gap: 2 },
   theirs: { backgroundColor: colors.surface2, borderTopLeftRadius: radii.sm, borderWidth: 1, borderColor: colors.border },
   mine: { backgroundColor: colors.primary, borderTopRightRadius: radii.sm },
   bubblePhoto: { padding: space.xs },
@@ -181,4 +290,18 @@ const styles = StyleSheet.create({
   photo: { width: 220, height: 220, borderRadius: radii.lg },
   photoPending: { alignItems: 'center', justifyContent: 'center', gap: space.sm, backgroundColor: colors.surface3 },
   reveal: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center', gap: space.xs },
+  reactions: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: space.sm,
+    paddingVertical: 2,
+    borderRadius: radii.pill,
+    backgroundColor: colors.surface2,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  chipMine: { backgroundColor: colors.accent, borderColor: colors.accent },
+  chipEmoji: { fontSize: 14, lineHeight: 20 },
 });

@@ -88,7 +88,6 @@ export default function Account() {
       <ListRow icon="gavel" title="Appeals" subtitle="Ask a person to review a decision" onPress={() => router.push('/settings/appeals')} />
 
       <SectionHeader title="Settings" small />
-      <ListRow icon="person-outline" title="Edit profile" onPress={() => router.push('/settings/profile')} />
       <ListRow icon="lock-outline" title="Privacy and data" subtitle="Permissions, export your data" onPress={() => router.push('/settings/privacy')} />
       <ListRow icon="help-outline" title="Help" onPress={() => router.push('/help')} />
       <ListRow icon="logout" title="Sign out" chevron={false} onPress={confirmSignOut} />

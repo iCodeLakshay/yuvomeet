@@ -10,12 +10,21 @@ export class AppError extends Error {
 
 const NETWORK = "You're offline. Check your connection and try again.";
 
+const STALE_RPC = 'Profile save is out of date. Try again in a moment.';
+
+function isMissingRpc(code: string | undefined, message: string): boolean {
+  if (code === 'PGRST202' || code === '42883') return true;
+  return /could not find the function/i.test(message) || /schema cache/i.test(message);
+}
+
 export function toAppError(error: unknown): AppError {
   if (error instanceof AppError) return error;
   const e = error as { message?: string; hint?: string; code?: string; name?: string };
-  if (e?.code === 'P0001' && e.message) return new AppError(e.message, e.hint ?? 'INVALID');
+  const message = e?.message ?? '';
+  if (e?.code === 'P0001' && message) return new AppError(message, e.hint ?? 'INVALID');
   if (e?.code === '42501') return new AppError("You can't do that.", 'FORBIDDEN');
-  if (e?.name === 'TypeError' || /network|fetch/i.test(e?.message ?? '')) return new AppError(NETWORK, 'NETWORK');
+  if (isMissingRpc(e?.code, message)) return new AppError(STALE_RPC, 'STALE_RPC');
+  if (e?.name === 'TypeError' || /network|fetch/i.test(message)) return new AppError(NETWORK, 'NETWORK');
   return new AppError('Something went wrong. Try again.', 'UNKNOWN');
 }
 

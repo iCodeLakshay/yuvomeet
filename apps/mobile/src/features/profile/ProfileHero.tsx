@@ -7,6 +7,7 @@ import {
   colors,
   Icon,
   radii,
+  RemoteImage,
   space,
   Text,
   type ColorToken,
@@ -33,6 +34,24 @@ interface Stat {
   label: string;
   color?: ColorToken;
 }
+
+/** Horizontal strip of extra profile photos (positions 1+). */
+const PhotoStrip = memo(function PhotoStrip({ paths }: { paths: string[] }) {
+  if (paths.length === 0) return null;
+  return (
+    <View style={styles.stripRow}>
+      {paths.map((p) => (
+        <RemoteImage
+          key={p}
+          path={p}
+          style={styles.stripThumb}
+          contentFit="cover"
+          accessibilityLabel="Additional profile photo"
+        />
+      ))}
+    </View>
+  );
+});
 
 const StatBar = memo(function StatBar({ stats }: { stats: Stat[] }) {
   return (
@@ -87,6 +106,8 @@ export const ProfileHero = memo(function ProfileHero({
   const showUp =
     profile.show_up_rate == null ? "—" : `${profile.show_up_rate}%`;
   const ageLabel = profile.age != null ? String(profile.age) : null;
+  // Extra photos (positions 1+) shown as thumbnails below the main avatar.
+  const extraPhotos = (profile.photo_paths ?? []).slice(1);
 
   return (
     <View style={styles.wrap}>
@@ -98,6 +119,7 @@ export const ProfileHero = memo(function ProfileHero({
         verifiedFill={own}
         ring
       />
+      {extraPhotos.length > 0 ? <PhotoStrip paths={extraPhotos} /> : null}
       <View
         style={styles.titleRow}
         accessible
@@ -168,8 +190,22 @@ export const ProfileHero = memo(function ProfileHero({
   );
 });
 
+const THUMB_SIZE = 72;
+
 const styles = StyleSheet.create({
   wrap: { alignItems: "center", gap: space.lg, paddingTop: space.lg },
+  stripRow: {
+    flexDirection: "row",
+    gap: space.sm,
+  },
+  stripThumb: {
+    width: THUMB_SIZE,
+    height: THUMB_SIZE,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: "hidden",
+  },
   titleRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
   stats: {
     flexDirection: "row",
