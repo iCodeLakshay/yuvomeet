@@ -73,7 +73,8 @@ export interface TrustedContact {
   phone: string;
 }
 
-const CONTACT_KEY = 'yuvomeet.trusted-contact';
+export const TRUSTED_CONTACT_KEY = 'yuvomeet.trusted-contact';
+const CONTACT_KEY = TRUSTED_CONTACT_KEY;
 
 export function useTrustedContact() {
   return useQuery({

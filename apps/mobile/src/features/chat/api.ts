@@ -34,6 +34,12 @@ const outboxKey = (conversationId: string) => `outbox.${conversationId}`;
 const listeners = new Set<() => void>();
 const cache = new Map<string, OutboxItem[]>();
 
+/** Sign-out: forget queued messages held in memory (the MMKV copies are wiped separately). */
+export function resetOutboxes() {
+  cache.clear();
+  listeners.forEach((l) => l());
+}
+
 function readOutbox(conversationId: string): OutboxItem[] {
   if (!cache.has(conversationId)) cache.set(conversationId, readJson<OutboxItem[]>(outboxKey(conversationId), []));
   return cache.get(conversationId)!;

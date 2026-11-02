@@ -20,6 +20,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   experiments: { typedRoutes: true },
   android: {
     package: 'app.yuvomeet',
+    // Sessions, chats and the trusted contact must not leave the phone through Android backups.
+    allowBackup: false,
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
       monochromeImage: './assets/adaptive-icon-mono.png',
@@ -34,6 +36,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       'android.permission.READ_CALL_LOG',
       'android.permission.READ_SMS',
       'android.permission.RECORD_AUDIO',
+      // Added by default for the dev menu overlay; the debug manifest still adds it for dev builds.
+      'android.permission.SYSTEM_ALERT_WINDOW',
+      'android.permission.WRITE_EXTERNAL_STORAGE',
     ],
     config: {
       googleMaps: { apiKey: process.env.GOOGLE_MAPS_ANDROID_API_KEY ?? '' },
@@ -77,6 +82,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ],
     ['expo-notifications', { icon: './assets/notification-icon.png', color: '#EAB308' }],
     ['@sentry/react-native/expo', { organization: process.env.SENTRY_ORG, project: process.env.SENTRY_PROJECT }],
+    './plugins/withAndroidHardening',
   ],
   extra: {
     eas: { projectId: process.env.EAS_PROJECT_ID },

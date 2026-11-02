@@ -6,6 +6,7 @@ import { qk, queryClient } from '../../lib/query';
 import { supabase, type Tables } from '../../lib/supabase';
 import { identify } from '../../lib/telemetry';
 import { registerPushToken } from '../account/push';
+import { endSession } from './endSession';
 
 export type SessionStatus = 'loading' | 'signed_out' | 'onboarding' | 'active' | 'restricted';
 
@@ -69,10 +70,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       status: statusOf(session, profile, profileQuery.isLoading),
       userId,
       profile: profile ?? null,
-      signOut: async () => {
-        await supabase.auth.signOut();
-        queryClient.clear();
-      },
+      signOut: endSession,
     }),
     [session, profile, profileQuery.isLoading, userId],
   );

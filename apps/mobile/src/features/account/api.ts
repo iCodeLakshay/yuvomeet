@@ -6,6 +6,7 @@ import { callFunction } from '../../lib/functions';
 import { qk, queryClient } from '../../lib/query';
 import { supabase, type Enums } from '../../lib/supabase';
 import { track } from '../../lib/telemetry';
+import { endSession } from '../session/endSession';
 
 export function useAppeals() {
   return useQuery({
@@ -64,8 +65,7 @@ export function useDeleteAccount() {
   return useMutation({
     mutationFn: async (code: string) => {
       await callFunction('delete-account', { action: 'confirm', code });
-      await supabase.auth.signOut();
-      queryClient.clear();
+      await endSession();
     },
   });
 }

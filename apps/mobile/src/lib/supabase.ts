@@ -2,10 +2,12 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@yuvomeet/shared';
 import { AppState } from 'react-native';
 import { env } from './env';
+import { fetchWithTimeout } from './fetch';
 import { kv } from './storage';
 
 /** Anon key only (S-2); every read and write goes through RLS. */
 export const supabase = createClient<Database>(env.supabaseUrl, env.supabaseAnonKey, {
+  global: { fetch: fetchWithTimeout },
   auth: {
     storage: kv,
     autoRefreshToken: true,

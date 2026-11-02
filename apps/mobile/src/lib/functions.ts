@@ -1,5 +1,6 @@
 import { AppError } from './errors';
 import { env } from './env';
+import { fetchWithTimeout } from './fetch';
 import { supabase } from './supabase';
 
 /** Calls an Edge Function with the user's JWT and maps { error } bodies to AppError. */
@@ -12,11 +13,16 @@ export async function callFunction<T>(name: string, body: unknown, authenticated
   }
   let res: Response;
   try {
-    res = await fetch(`${env.supabaseUrl}/functions/v1/${name}`, { method: 'POST', headers, body: JSON.stringify(body) });
+    res = await fetchWithTimeout(`${env.supabaseUrl}/functions/v1/${name}`, { method: 'POST', headers, body: JSON.stringify(body) });
   } catch {
-    throw new AppError("You're offline. Check your connection and try again.", 'NETWORK');
+    throw new AppError("You're offline or the connection is too slow. Try again.", 'NETWORK');
   }
   const json = (await res.json().catch(() => ({}))) as { error?: { code: string; message: string } & Record<string, unknown> };
+  if (res.status === 401 && authenticated && json.error?.code === 'UNAUTHORIZED') {
+    // Session revoked or expired beyond refresh (e.g. suspended): drop it so the app returns to sign-in.
+    await supabase.auth.signOut({ scope: 'local' }).catch(() => undefined);
+    throw new AppError('Your session ended. Sign in again.', 'UNAUTHORIZED');
+  }
   if (!res.ok || json.error) {
     throw new AppError(json.error?.message ?? 'Something went wrong. Try again.', json.error?.code ?? 'UNKNOWN', json.error);
   }
