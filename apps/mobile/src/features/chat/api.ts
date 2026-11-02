@@ -197,10 +197,6 @@ export function retryMessage(conversationId: string, messageId: string) {
   void flushOutbox(conversationId);
 }
 
-export function discardMessage(conversationId: string, messageId: string) {
-  writeOutbox(conversationId, readOutbox(conversationId).filter((m) => m.id !== messageId));
-}
-
 /** CH-2: chat photos are moderated before anyone else can see them. */
 export function useSendPhoto(conversationId: string) {
   return useMutation({
@@ -210,7 +206,7 @@ export function useSendPhoto(conversationId: string) {
 }
 
 /** "Delete for everyone" is open for this long after sending (delete_message re-checks). */
-export const DELETE_FOR_EVERYONE_MS = 10 * 60_000;
+const DELETE_FOR_EVERYONE_MS = 10 * 60_000;
 
 export const canDeleteForEveryone = (m: Message, userId: string, now = Date.now()) =>
   m.sender_id === userId && !m.pending && !m.failed && now - Date.parse(m.created_at) < DELETE_FOR_EVERYONE_MS;

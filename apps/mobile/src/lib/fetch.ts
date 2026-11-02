@@ -2,7 +2,7 @@
  * fetch with a timeout, so a stalled request fails instead of spinning forever. Storage
  * uploads are exempt: a photo on a slow connection can legitimately take longer.
  */
-export const REQUEST_TIMEOUT_MS = 30_000;
+const REQUEST_TIMEOUT_MS = 30_000;
 
 export function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;

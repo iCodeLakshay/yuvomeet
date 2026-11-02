@@ -23,6 +23,7 @@ import { errorMessage } from '../../../src/lib/errors';
 import { PAYWALL_ENABLED } from '../../../src/lib/flags';
 import { pickImage } from '../../../src/lib/media';
 import { formatRange } from '../../../src/lib/format';
+import { useNow } from '../../../src/lib/useNow';
 import {
   Badge,
   Button,
@@ -104,7 +105,8 @@ export default function CreatePlan() {
   useEffect(() => () => pickedVenue.set(null), []);
   const venue = venues.data?.find((v) => v.id === venueId);
   const late = Boolean(venue?.late_events_allowed);
-  const allowed = (m: number) => isStartAllowed(dayKey, m, duration, Date.now(), late);
+  const now = useNow();
+  const allowed = (m: number) => isStartAllowed(dayKey, m, duration, now, late);
   // A start that no longer fits (other day, longer duration, different venue) reads as unset.
   const start = pickedStart != null && allowed(pickedStart) ? pickedStart : null;
 
@@ -379,8 +381,8 @@ export default function CreatePlan() {
           setError(null);
           setStart(m);
         }}
-        validate={(m) => startProblem(dayKey, m, duration, Date.now(), late)}
-        suggested={suggestStart(dayKey, duration, Date.now(), late)}
+        validate={(m) => startProblem(dayKey, m, duration, now, late)}
+        suggested={suggestStart(dayKey, duration, now, late)}
         onInvalid={(message) => toast.warning(message)}
         title={`Start time · ${day.label}, ${day.sub}`}
         emptyText="No start times left on this day. Pick another date or a shorter duration."

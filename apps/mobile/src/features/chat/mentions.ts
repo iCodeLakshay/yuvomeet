@@ -12,15 +12,18 @@ function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+/** A mention ends at anything that is not part of a name, so "@Ann!" counts but "@Anna" is not "@Ann". */
+const NAME_END = '(?![\\p{L}\\p{N}_])';
+
 /** True when @name is a whole mention, so @Ann does not match @Anna. */
 export function bodyMentions(body: string, name: string) {
-  return new RegExp(`@${escapeRegExp(name)}(?!\\S)`).test(body);
+  return new RegExp(`@${escapeRegExp(name)}${NAME_END}`, 'u').test(body);
 }
 
 export function splitMentions(body: string, names: string[]): { text: string; mention: boolean }[] {
   const unique = [...new Set(names.filter((name) => name.length > 0))].sort((a, b) => b.length - a.length);
   if (unique.length === 0) return [{ text: body, mention: false }];
-  const pattern = new RegExp(`@(${unique.map(escapeRegExp).join('|')})(?!\\S)`, 'g');
+  const pattern = new RegExp(`@(${unique.map(escapeRegExp).join('|')})${NAME_END}`, 'gu');
   const parts: { text: string; mention: boolean }[] = [];
   let cursor = 0;
   for (const match of body.matchAll(pattern)) {

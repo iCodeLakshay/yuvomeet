@@ -31,5 +31,5 @@ export const PlanCover = memo(function PlanCover({ path, icon, style, children }
 const styles = StyleSheet.create({
   wrap: { overflow: 'hidden', backgroundColor: colors.surface3 },
   fallback: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface2 },
-  scrim: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(7, 8, 12, 0.32)' },
+  scrim: { ...StyleSheet.absoluteFill, backgroundColor: colors.photoScrim },
 });

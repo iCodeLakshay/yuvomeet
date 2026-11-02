@@ -66,7 +66,7 @@ export default function GroupChat() {
   const [selected, setSelected] = useState<Set<string> | null>(null);
   const [viewing, setViewing] = useState<string | null>(null);
 
-  const people = ((isPair ? pairMembers.data : roster.data) ?? []) as Person[];
+  const people = useMemo(() => ((isPair ? pairMembers.data : roster.data) ?? []) as Person[], [isPair, pairMembers.data, roster.data]);
   const senders = useMemo(
     () =>
       new Map<string, Sender>(

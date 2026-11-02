@@ -1,18 +1,8 @@
-import { AsteriskFillIcon } from "@thesvg/ui-react-native/asterisk";
-import { memo, useMemo } from "react";
-import { StyleSheet, View } from "react-native";
-import {
-  Avatar,
-  Badge,
-  colors,
-  Icon,
-  radii,
-  space,
-  Text,
-  type ColorToken,
-  type IconName,
-} from "../../ui";
-import { useLookups } from "./api";
+import { AsteriskFillIcon } from '@thesvg/ui-react-native/asterisk';
+import { memo, useMemo } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { Avatar, Badge, colors, Icon, radii, space, Text, type ColorToken, type IconName } from '../../ui';
+import { useLookups } from './api';
 
 export interface ProfileSummary {
   first_name: string | null;
@@ -38,13 +28,8 @@ const StatBar = memo(function StatBar({ stats }: { stats: Stat[] }) {
   return (
     <View style={styles.stats}>
       {stats.map((s, i) => (
-        <View
-          key={s.label}
-          style={[styles.stat, i ? styles.statDivider : null]}
-          accessible
-          accessibilityLabel={`${s.label}: ${s.value}`}
-        >
-          <Text variant="title3" color={s.color ?? "text"}>
+        <View key={s.label} style={[styles.stat, i ? styles.statDivider : null]} accessible accessibilityLabel={`${s.label}: ${s.value}`}>
+          <Text variant="title3" color={s.color ?? 'text'}>
             {s.value}
           </Text>
           <Text variant="caption" color="textSubtle">
@@ -72,20 +57,15 @@ export const ProfileHero = memo(function ProfileHero({
 }) {
   const lookups = useLookups();
   const interests = useMemo(() => {
-    const map = new Map(
-      (lookups.data?.interests ?? []).map((i) => [i.slug, i]),
-    );
+    const map = new Map((lookups.data?.interests ?? []).map((i) => [i.slug, i]));
     return (profile.interests ?? []).map((slug) => ({
       slug,
       label: map.get(slug)?.label ?? slug,
-      icon: (map.get(slug)?.icon ?? "star") as IconName,
+      icon: (map.get(slug)?.icon ?? 'star') as IconName,
     }));
   }, [lookups.data, profile.interests]);
-  const common = mine.length
-    ? interests.filter((i) => mine.includes(i.slug)).length
-    : 0;
-  const showUp =
-    profile.show_up_rate == null ? "—" : `${profile.show_up_rate}%`;
+  const common = mine.length ? interests.filter((i) => mine.includes(i.slug)).length : 0;
+  const showUp = profile.show_up_rate == null ? '—' : `${profile.show_up_rate}%`;
   const ageLabel = profile.age != null ? String(profile.age) : null;
   // Extra photos (positions 1+) shown as thumbnails below the main avatar.
 
@@ -103,21 +83,12 @@ export const ProfileHero = memo(function ProfileHero({
       <View
         style={styles.titleRow}
         accessible
-        accessibilityLabel={
-          ageLabel
-            ? `${profile.first_name}, ${ageLabel}`
-            : (profile.first_name ?? "")
-        }
+        accessibilityLabel={ageLabel ? `${profile.first_name}, ${ageLabel}` : (profile.first_name ?? '')}
       >
         <Text variant="title1">{profile.first_name}</Text>
         {ageLabel ? (
           <>
-            <AsteriskFillIcon
-              size={14}
-              color={colors.textSubtle}
-              accessibilityElementsHidden
-              importantForAccessibility="no"
-            />
+            <AsteriskFillIcon size={14} color={colors.textSubtle} accessibilityElementsHidden importantForAccessibility="no" />
             <Text variant="title1">{ageLabel}</Text>
           </>
         ) : null}
@@ -129,15 +100,12 @@ export const ProfileHero = memo(function ProfileHero({
       ) : null}
       <StatBar
         stats={[
-          { value: String(profile.plans_hosted ?? 0), label: "Meets hosted" },
-          { value: String(profile.plans_attended ?? 0), label: "Attended" },
+          { value: String(profile.plans_hosted ?? 0), label: 'Meets hosted' },
+          { value: String(profile.plans_attended ?? 0), label: 'Attended' },
           {
             value: showUp,
-            label: "Show-up",
-            color:
-              profile.show_up_rate != null && profile.show_up_rate >= 90
-                ? "success"
-                : "text",
+            label: 'Show-up',
+            color: profile.show_up_rate != null && profile.show_up_rate >= 90 ? 'success' : 'text',
           },
         ]}
       />
@@ -146,7 +114,7 @@ export const ProfileHero = memo(function ProfileHero({
           <View style={styles.interestHead}>
             <Icon name="loyalty" size={23} color="brand" />
             <Text variant="bodyStrong" color="textMuted" style={styles.flex}>
-              {mine.length ? "Interests" : "Your interests"}
+              {mine.length ? 'Interests' : 'Your interests'}
             </Text>
             {common ? <Badge label={`${common} in common`} /> : null}
           </View>
@@ -154,19 +122,9 @@ export const ProfileHero = memo(function ProfileHero({
             {interests.map((i) => {
               const shared = mine.includes(i.slug);
               return (
-                <View
-                  key={i.slug}
-                  style={[styles.chip, shared ? styles.chipShared : null]}
-                >
-                  <Icon
-                    name={i.icon}
-                    size={15}
-                    color={shared ? "brand" : "textMuted"}
-                  />
-                  <Text
-                    variant="smallStrong"
-                    color={shared ? "text" : "textMuted"}
-                  >
+                <View key={i.slug} style={[styles.chip, shared ? styles.chipShared : null]}>
+                  <Icon name={i.icon} size={15} color={shared ? 'brand' : 'textMuted'} />
+                  <Text variant="smallStrong" color={shared ? 'text' : 'textMuted'}>
                     {i.label}
                   </Text>
                 </View>
@@ -182,9 +140,9 @@ export const ProfileHero = memo(function ProfileHero({
 const THUMB_SIZE = 72;
 
 const styles = StyleSheet.create({
-  wrap: { alignItems: "center", gap: space.lg, paddingTop: space.lg },
+  wrap: { alignItems: 'center', gap: space.lg, paddingTop: space.lg },
   stripRow: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: space.sm,
   },
   stripThumb: {
@@ -193,32 +151,32 @@ const styles = StyleSheet.create({
     borderRadius: radii.md,
     borderWidth: 1,
     borderColor: colors.border,
-    overflow: "hidden",
+    overflow: 'hidden',
   },
   titleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: 8,
   },
   stats: {
-    flexDirection: "row",
-    alignSelf: "stretch",
+    flexDirection: 'row',
+    alignSelf: 'stretch',
     paddingVertical: space.md,
     borderRadius: radii.xl,
     backgroundColor: colors.surface1,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  stat: { flex: 1, alignItems: "center", gap: 2 },
+  stat: { flex: 1, alignItems: 'center', gap: 2 },
   statDivider: { borderLeftWidth: 1, borderLeftColor: colors.border },
-  interests: { alignSelf: "stretch", gap: space.md },
-  interestHead: { flexDirection: "row", alignItems: "center", gap: space.sm },
+  interests: { alignSelf: 'stretch', gap: space.md },
+  interestHead: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   flex: { flex: 1 },
-  chips: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   chip: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: space.sm,
     minHeight: 40,
     paddingHorizontal: space.lg,
@@ -228,7 +186,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   chipShared: {
-    borderColor: "rgba(234, 179, 8, 0.4)",
+    borderColor: colors.accentBorder,
     backgroundColor: colors.accentSoft,
   },
 });

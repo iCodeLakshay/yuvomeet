@@ -6,12 +6,18 @@ import * as SystemUI from 'expo-system-ui';
 import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { ErrorScreen } from '../src/features/errors/ErrorScreen';
+import { OfflineBanner } from '../src/features/navigation/OfflineBanner';
+import { wireSessionExpiry } from '../src/features/session/expiry';
 import { SessionProvider, useSession } from '../src/features/session/SessionProvider';
-import { queryClient, queryPersister } from '../src/lib/query';
+import { wireNetworkAndFocus } from '../src/lib/network';
+import { CACHE_BUSTER, queryClient, queryPersister } from '../src/lib/query';
 import { initTelemetry, wrapRoot } from '../src/lib/telemetry';
 import { colors, DialogHost, ToastHost } from '../src/ui';
 
 initTelemetry();
+wireNetworkAndFocus();
+wireSessionExpiry();
 void SplashScreen.preventAutoHideAsync();
 void SystemUI.setBackgroundColorAsync(colors.bg);
 
@@ -48,10 +54,11 @@ function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.bg }}>
       <SafeAreaProvider>
-        <PersistQueryClientProvider client={queryClient} persistOptions={{ persister: queryPersister, maxAge: 24 * 3_600_000 }}>
+        <PersistQueryClientProvider client={queryClient} persistOptions={{ persister: queryPersister, maxAge: 24 * 3_600_000, buster: CACHE_BUSTER }}>
           <SessionProvider>
             <StatusBar style="light" />
             <Routes />
+            <OfflineBanner />
             <DialogHost />
             <ToastHost />
           </SessionProvider>
@@ -60,5 +67,8 @@ function RootLayout() {
     </GestureHandlerRootView>
   );
 }
+
+/** Crash recovery for anything below the root (expo-router renders this instead of the layout). */
+export const ErrorBoundary = ErrorScreen;
 
 export default wrapRoot(RootLayout);

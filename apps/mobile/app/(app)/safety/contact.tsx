@@ -1,34 +1,40 @@
 import { toE164India } from '@yuvomeet/shared';
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { saveTrustedContact, useTrustedContact } from '../../../src/features/safety/api';
+import { saveTrustedContact, useTrustedContact, type TrustedContact as Contact } from '../../../src/features/safety/api';
+import { errorMessage } from '../../../src/lib/errors';
 import { Button, Field, Header, Notice, Screen, StatusHero, space } from '../../../src/ui';
 
 /** SF-2, S-50: the trusted contact lives only in this phone's secure storage. */
 export default function TrustedContact() {
   const contact = useTrustedContact();
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
+  // Edits override the stored contact; untouched fields show what is saved.
+  const [draftName, setName] = useState<string>();
+  const [draftPhone, setPhone] = useState<string>();
+  const name = draftName ?? contact.data?.name ?? '';
+  const phone = draftPhone ?? contact.data?.phone ?? '';
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    if (contact.data) {
-      setName(contact.data.name);
-      setPhone(contact.data.phone);
+  const persist = async (next: Contact | null) => {
+    setError(null);
+    setBusy(true);
+    try {
+      await saveTrustedContact(next);
+      router.back();
+    } catch (e) {
+      setError(errorMessage(e));
+    } finally {
+      setBusy(false);
     }
-  }, [contact.data]);
+  };
 
-  const save = async () => {
+  const save = () => {
     const e164 = toE164India(phone);
     if (!name.trim()) return setError('Add a name.');
     if (!e164) return setError('Enter a 10-digit Indian mobile number.');
-    setError(null);
-    setBusy(true);
-    await saveTrustedContact({ name: name.trim(), phone: e164 });
-    setBusy(false);
-    router.back();
+    void persist({ name: name.trim(), phone: e164 });
   };
 
   return (
@@ -37,7 +43,7 @@ export default function TrustedContact() {
       footer={
         <>
           <Button label="Save contact" loading={busy} onPress={save} />
-          {contact.data ? <Button label="Remove contact" variant="ghost" size="sm" onPress={() => void saveTrustedContact(null).then(() => router.back())} /> : null}
+          {contact.data ? <Button label="Remove contact" variant="ghost" size="sm" disabled={busy} onPress={() => void persist(null)} /> : null}
         </>
       }
     >

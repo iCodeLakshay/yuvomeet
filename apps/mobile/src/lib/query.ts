@@ -1,5 +1,6 @@
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
 import { QueryClient } from '@tanstack/react-query';
+import * as Application from 'expo-application';
 import { kv } from './storage';
 import { toAppError } from './errors';
 
@@ -14,6 +15,12 @@ export const queryClient = new QueryClient({
     mutations: { retry: false },
   },
 });
+
+/**
+ * Persisted cache is tied to the app build: after an update, data cached in an older shape
+ * is dropped instead of being rendered by code that expects the new one.
+ */
+export const CACHE_BUSTER = `${Application.nativeApplicationVersion ?? 'dev'}+${Application.nativeBuildVersion ?? '0'}`;
 
 export const queryPersister = createSyncStoragePersister({ storage: kv, key: 'yuvomeet.query-cache.v1', throttleTime: 2_000 });
 

@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMarkRead, useNotifications, type Notification } from '../../src/features/notifications/api';
 import { notificationMeta } from '../../src/features/notifications/destinations';
 import { formatAgo } from '../../src/lib/format';
+import { useNow } from '../../src/lib/useNow';
 import { colors, EmptyState, gutter, Header, Icon, IconButton, Pressable, Segmented, space, Text } from '../../src/ui';
 
 type Filter = 'all' | 'plan' | 'approval' | 'safety';
@@ -57,7 +58,8 @@ export default function Notifications() {
   const query = useNotifications();
   const markRead = useMarkRead();
   const [filter, setFilter] = useState<Filter>('all');
-  const all = query.data ?? [];
+  const all = useMemo(() => query.data ?? [], [query.data]);
+  const now = useNow(60_000);
   const unreadCount = all.filter((n) => !n.read_at).length;
 
   // Mark read when leaving, so unread styling is visible while the screen is open.
@@ -65,7 +67,7 @@ export default function Notifications() {
 
   const rows = useMemo<Row[]>(() => {
     const list = all.filter((n) => filter === 'all' || n.category === filter || (filter === 'safety' && n.category === 'account'));
-    const cutoff = Date.now() - DAY;
+    const cutoff = now - DAY;
     const today = list.filter((n) => Date.parse(n.created_at) >= cutoff);
     const earlier = list.filter((n) => Date.parse(n.created_at) < cutoff);
     const fresh = today.filter((n) => !n.read_at).length;
@@ -75,7 +77,7 @@ export default function Notifications() {
       ...(earlier.length ? [{ type: 'section', title: 'Earlier' } as Row] : []),
       ...earlier.map((n): Row => ({ type: 'item', n })),
     ];
-  }, [all, filter]);
+  }, [all, filter, now]);
 
   const renderItem = useCallback(
     ({ item }: { item: Row }) =>

@@ -111,7 +111,7 @@ export const MessageMenu = memo(function MessageMenu({
 });
 
 const styles = StyleSheet.create({
-  scrim: { flex: 1, backgroundColor: 'rgba(7, 8, 12, 0.6)' },
+  scrim: { flex: 1, backgroundColor: colors.menuScrim },
   focus: { position: 'absolute', borderRadius: radii.xl, borderWidth: 1.5, borderColor: colors.borderStrong },
   stack: { position: 'absolute', gap: space.sm },
   reactions: {

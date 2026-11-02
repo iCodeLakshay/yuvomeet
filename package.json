@@ -5,7 +5,7 @@
   "packageManager": "pnpm@9.15.9",
   "scripts": {
     "typecheck": "pnpm -r typecheck",
-    "test": "pnpm --filter @yuvomeet/shared test && node scripts/verify-security-rules.mjs",
+    "test": "pnpm -r test && node scripts/verify-security-rules.mjs",
     "check:security": "node scripts/verify-security-rules.mjs",
     "db:types": "supabase gen types typescript --local --schema public > packages/shared/src/database.types.ts",
     "db:test": "supabase test db",
@@ -14,7 +14,8 @@
     "start": "pnpm --filter @yuvomeet/mobile start",
     "mobile:start": "pnpm --filter @yuvomeet/mobile start",
     "mobile:android": "pnpm --filter @yuvomeet/mobile android",
-    "admin:dev": "pnpm --filter @yuvomeet/admin dev"
+    "admin:dev": "pnpm --filter @yuvomeet/admin dev",
+    "lint": "pnpm --filter @yuvomeet/mobile lint"
   },
   "devDependencies": {
     "typescript": "~5.8.2"

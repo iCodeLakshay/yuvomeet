@@ -10,6 +10,8 @@ export class AppError extends Error {
 
 const NETWORK = "You're offline. Check your connection and try again.";
 
+const SLOW = 'The connection is too slow right now. Try again.';
+
 const STALE_RPC = 'Profile save is out of date. Try again in a moment.';
 
 function isMissingRpc(code: string | undefined, message: string): boolean {
@@ -24,6 +26,12 @@ export function toAppError(error: unknown): AppError {
   if (e?.code === 'P0001' && message) return new AppError(message, e.hint ?? 'INVALID');
   if (e?.code === '42501') return new AppError("You can't do that.", 'FORBIDDEN');
   if (isMissingRpc(e?.code, message)) return new AppError(STALE_RPC, 'STALE_RPC');
+  // PostgREST rejects an expired access token; the session guard refreshes or signs out.
+  if (e?.code === 'PGRST301' || e?.code === 'PGRST303' || /jwt expired/i.test(message)) {
+    return new AppError('Your session expired. Sign in again to continue.', 'SESSION_EXPIRED');
+  }
+  // fetchWithTimeout aborts stalled requests: treat as a retryable network failure.
+  if (e?.name === 'AbortError') return new AppError(SLOW, 'NETWORK');
   if (e?.name === 'TypeError' || /network|fetch/i.test(message)) return new AppError(NETWORK, 'NETWORK');
   return new AppError('Something went wrong. Try again.', 'UNKNOWN');
 }

@@ -6,6 +6,7 @@ import { OtpCells } from '../../src/features/auth/OtpCells';
 import { requestOtp, verifyOtp } from '../../src/features/session/auth';
 import { AppError, toAppError } from '../../src/lib/errors';
 import { formatTime } from '../../src/lib/format';
+import { useNow } from '../../src/lib/useNow';
 import { Button, Header, Logo, Notice, Pressable, Screen, space, Text } from '../../src/ui';
 
 const mask = (phone: string) => `+91 ${phone.slice(3, 5)}•••••${phone.slice(-2)}`;
@@ -27,7 +28,8 @@ export default function Otp() {
     return () => clearTimeout(t);
   }, [cooldown]);
 
-  const locked = Boolean(lockedUntil && Date.parse(lockedUntil) > Date.now());
+  const now = useNow(1_000);
+  const locked = Boolean(lockedUntil && Date.parse(lockedUntil) > now);
 
   const verify = async (value: string) => {
     if (busy) return;
@@ -93,7 +95,7 @@ export default function Otp() {
         {error ? <Notice tone="danger" text={error} /> : null}
         <View style={styles.resend}>
           <Text variant="small" color="textSubtle">
-            Didn't receive code?
+            Didn’t receive code?
           </Text>
           <Pressable onPress={resend} disabled={cooldown > 0 || locked} accessibilityLabel="Resend code">
             <Text variant="smallStrong">{cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend code'}</Text>

@@ -228,7 +228,7 @@ export default function PlanDetails() {
             <View style={styles.stackRow}>
               <AvatarStack names={plan.member_names ?? []} total={plan.approved_count ?? 0} size={36} />
               <Text variant="small" color="textSubtle" style={styles.flex}>
-                Names and photos show once you're in the plan.
+                Names and photos show once you’re in the plan.
               </Text>
             </View>
           )}
@@ -243,7 +243,7 @@ export default function PlanDetails() {
             onPress={() => router.push({ pathname: '/safety/sos', params: { planId: plan.id! } })}
           />
         ) : null}
-        {plan.my_status === 'approved' && upcoming ? <Button label="Leave plan" variant="ghost" size="md" onPress={confirmLeave} /> : null}
+        {plan.my_status === 'approved' && upcoming ? <Button label="Leave plan" variant="ghost" size="md" loading={leave.isPending} onPress={confirmLeave} /> : null}
       </View>
     </Screen>
   );
