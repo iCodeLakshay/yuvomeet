@@ -16,6 +16,7 @@ import { isPaid, useCaps, useCreatePlan, useUploadCover, useVenues, venueCover, 
 import { PlanCover } from '../../../src/features/plans/PlanCover';
 import { atMinutes, dayLabel, isStartAllowed, MAX_DAYS_AHEAD, minutesLabel, startProblem, suggestStart, todayKey } from '../../../src/features/plans/schedule';
 import { pickedVenue } from '../../../src/features/plans/stores';
+import { useNow } from '../../../src/lib/useNow';
 import { useActivityMeta } from '../../../src/features/plans/usePlanMeta';
 import { useLookups } from '../../../src/features/profile/api';
 import { isVerified, useMe } from '../../../src/features/session/SessionProvider';
@@ -102,9 +103,10 @@ export default function CreatePlan() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => () => pickedVenue.set(null), []);
+  const now = useNow();
   const venue = venues.data?.find((v) => v.id === venueId);
   const late = Boolean(venue?.late_events_allowed);
-  const allowed = (m: number) => isStartAllowed(dayKey, m, duration, Date.now(), late);
+  const allowed = (m: number) => isStartAllowed(dayKey, m, duration, now, late);
   // A start that no longer fits (other day, longer duration, different venue) reads as unset.
   const start = pickedStart != null && allowed(pickedStart) ? pickedStart : null;
 
@@ -380,7 +382,7 @@ export default function CreatePlan() {
           setStart(m);
         }}
         validate={(m) => startProblem(dayKey, m, duration, Date.now(), late)}
-        suggested={suggestStart(dayKey, duration, Date.now(), late)}
+        suggested={suggestStart(dayKey, duration, now, late)}
         onInvalid={(message) => toast.warning(message)}
         title={`Start time · ${day.label}, ${day.sub}`}
         emptyText="No start times left on this day. Pick another date or a shorter duration."

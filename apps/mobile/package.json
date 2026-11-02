@@ -8,6 +8,7 @@
     "android": "expo run:android",
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
+    "test": "node --experimental-strip-types --no-warnings --test src/__tests__/logic.test.ts",
     "doctor": "expo install --check",
     "ios": "expo run:ios"
   },
@@ -39,6 +40,7 @@
     "expo-image-picker": "~57.0.20",
     "expo-linking": "~57.0.13",
     "expo-location": "~57.0.22",
+    "expo-network": "~57.0.3",
     "expo-notifications": "~57.0.23",
     "expo-router": "~57.0.29",
     "expo-secure-store": "~57.0.4",

@@ -1,4 +1,4 @@
-import { memo, type ReactNode } from 'react';
+import { memo, useRef, type ReactNode } from 'react';
 import { ActivityIndicator, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Icon, type IconName } from './Icon';
 import { Pressable } from './Pressable';
@@ -10,7 +10,8 @@ type Size = 'lg' | 'md' | 'sm';
 
 export interface ButtonProps {
   label: string;
-  onPress?: () => void;
+  /** May return a promise; the button ignores further presses until it settles. */
+  onPress?: () => void | Promise<unknown>;
   variant?: Variant;
   size?: Size;
   icon?: IconName;
@@ -52,9 +53,28 @@ export const Button = memo(function Button({
 }: ButtonProps) {
   const t = tone[variant];
   const glyph = size === 'sm' ? 15 : 17;
+  // `loading` only disables the button after a re-render, so a fast double tap can land twice.
+  // Lock synchronously; when onPress returns a promise, stay locked until it settles.
+  const pending = useRef(false);
+  const handlePress = () => {
+    if (pending.current || !onPress) return;
+    const result = onPress();
+    if (result && typeof (result as Promise<unknown>).finally === 'function') {
+      pending.current = true;
+      void (result as Promise<unknown>).catch(() => undefined).finally(() => {
+        pending.current = false;
+      });
+    } else {
+      // Synchronous handlers that kick off a mutation: ignore repeats within the same tap burst.
+      pending.current = true;
+      setTimeout(() => {
+        pending.current = false;
+      }, 400);
+    }
+  };
   return (
     <Pressable
-      onPress={onPress}
+      onPress={handlePress}
       disabled={disabled || loading}
       haptic={variant === 'primary' || variant === 'sos'}
       accessibilityLabel={accessibilityLabel ?? label}

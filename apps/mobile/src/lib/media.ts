@@ -4,7 +4,7 @@ import * as Crypto from 'expo-crypto';
 import { File } from 'expo-file-system';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
-import { AppError, unwrap } from './errors';
+import { AppError } from './errors';
 import { callFunction } from './functions';
 import { qk } from './query';
 import { supabase } from './supabase';

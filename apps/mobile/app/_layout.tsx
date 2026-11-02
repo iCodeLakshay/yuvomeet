@@ -6,12 +6,19 @@ import * as SystemUI from 'expo-system-ui';
 import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { CrashScreen } from '../src/features/navigation/CrashScreen';
+import { OfflineBanner } from '../src/features/navigation/OfflineBanner';
 import { SessionProvider, useSession } from '../src/features/session/SessionProvider';
+import { wireQueryLifecycle } from '../src/lib/connectivity';
 import { queryClient, queryPersister } from '../src/lib/query';
 import { initTelemetry, wrapRoot } from '../src/lib/telemetry';
 import { colors, DialogHost, ToastHost } from '../src/ui';
 
+/** A render error anywhere below shows a recoverable screen instead of closing the app. */
+export const ErrorBoundary = CrashScreen;
+
 initTelemetry();
+wireQueryLifecycle();
 void SplashScreen.preventAutoHideAsync();
 void SystemUI.setBackgroundColorAsync(colors.bg);
 
@@ -52,6 +59,7 @@ function RootLayout() {
           <SessionProvider>
             <StatusBar style="light" />
             <Routes />
+            <OfflineBanner />
             <DialogHost />
             <ToastHost />
           </SessionProvider>

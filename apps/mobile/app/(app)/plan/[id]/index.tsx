@@ -228,7 +228,7 @@ export default function PlanDetails() {
             <View style={styles.stackRow}>
               <AvatarStack names={plan.member_names ?? []} total={plan.approved_count ?? 0} size={36} />
               <Text variant="small" color="textSubtle" style={styles.flex}>
-                Names and photos show once you're in the plan.
+                Names and photos show once you&apos;re in the plan.
               </Text>
             </View>
           )}

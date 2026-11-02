@@ -1,5 +1,5 @@
 import DateTimePicker, { DateTimePickerAndroid, type DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { memo, useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import { Button } from './Button';
 import { Notice } from './Notice';
@@ -42,7 +42,9 @@ export const TimePicker = memo(function TimePicker(props: TimePickerProps) {
 function AndroidClock({ visible, onClose, value, onChange, validate, suggested, onInvalid, emptyText }: TimePickerProps) {
   // The dialog is imperative; keep the latest callbacks without re-opening it on every render.
   const latest = useRef({ onClose, value, onChange, validate, suggested, onInvalid, emptyText });
-  latest.current = { onClose, value, onChange, validate, suggested, onInvalid, emptyText };
+  useLayoutEffect(() => {
+    latest.current = { onClose, value, onChange, validate, suggested, onInvalid, emptyText };
+  });
 
   useEffect(() => {
     if (!visible) return;

@@ -5,6 +5,7 @@ import { ScrollView, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCancelPlan, usePlan } from '../../../../src/features/plans/api';
 import { errorMessage } from '../../../../src/lib/errors';
+import { useNow } from '../../../../src/lib/useNow';
 import { Button, confirm, Field, gutter, Notice, RadioRow, SheetHeader, space } from '../../../../src/ui';
 
 const REASONS = ['Something came up', 'Not enough people', 'Venue issue', 'Feeling unwell'] as const;
@@ -19,9 +20,11 @@ export default function CancelSheet() {
   const [reason, setReason] = useState<string>(REASONS[0]);
   const [other, setOther] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const late = plan ? Date.parse(plan.starts_at!) - Date.now() < LATE_HOURS * 3_600_000 : false;
+  const now = useNow();
+  const late = plan?.starts_at ? Date.parse(plan.starts_at) - now < LATE_HOURS * 3_600_000 : false;
 
   const submit = async () => {
+    if (cancel.isPending) return;
     const text = reason === 'Other' ? other.trim() : reason;
     const problem = checkText(text, 'Reason', 3, 200);
     setError(problem);

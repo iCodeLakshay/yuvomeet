@@ -30,7 +30,7 @@ export default function PhoneEntry() {
       <View style={styles.body}>
         <Text variant="title1">Enter your mobile number</Text>
         <Text variant="body" color="textMuted">
-          We'll text you a 6-digit code. Your number is only for signing in.
+          We&apos;ll text you a 6-digit code. Your number is only for signing in.
         </Text>
         <Field
           label="Mobile number (+91)"

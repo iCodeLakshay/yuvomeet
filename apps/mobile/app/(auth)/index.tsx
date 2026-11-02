@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { FlatList, StyleSheet, useWindowDimensions, View, type ViewToken } from 'react-native';
 import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { HeroShell } from '../../src/features/auth/HeroShell';
@@ -36,10 +36,11 @@ export default function Welcome() {
       setGoogle(false);
     }
   };
-  const onViewable = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
+  // FlatList requires onViewableItemsChanged to keep the same identity; setIndex is stable.
+  const onViewable = useCallback(({ viewableItems }: { viewableItems: ViewToken[] }) => {
     const first = viewableItems[0];
     if (first?.index != null) setIndex(first.index);
-  }).current;
+  }, []);
   const renderSlide = useCallback(
     ({ item }: { item: (typeof SLIDES)[number] }) => (
       <View style={{ width: width - gutter * 2, gap: space.md }}>

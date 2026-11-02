@@ -8,7 +8,7 @@ import { AppError, toAppError } from '../../src/lib/errors';
 import { formatTime } from '../../src/lib/format';
 import { Button, Header, Logo, Notice, Pressable, Screen, space, Text } from '../../src/ui';
 
-const mask = (phone: string) => `+91 ${phone.slice(3, 5)}•••••${phone.slice(-2)}`;
+const mask = (phone = '') => `+91 ${phone.slice(3, 5)}•••••${phone.slice(-2)}`;
 
 /** Stitch "OTP Verification". ON-1: 5 wrong codes lock the number for 30 minutes (S-10). */
 export default function Otp() {
@@ -27,10 +27,17 @@ export default function Otp() {
     return () => clearTimeout(t);
   }, [cooldown]);
 
-  const locked = Boolean(lockedUntil && Date.parse(lockedUntil) > Date.now());
+  // Lift the lock when it expires, so the screen unlocks without needing another render trigger.
+  useEffect(() => {
+    if (!lockedUntil) return;
+    const t = setTimeout(() => setLockedUntil(null), Math.max(0, Date.parse(lockedUntil) - Date.now()));
+    return () => clearTimeout(t);
+  }, [lockedUntil]);
+
+  const locked = lockedUntil !== null;
 
   const verify = async (value: string) => {
-    if (busy) return;
+    if (busy || locked || !phone) return;
     setBusy(true);
     setError(null);
     try {
@@ -59,6 +66,7 @@ export default function Otp() {
   };
 
   const resend = async () => {
+    if (!phone) return;
     try {
       await requestOtp(phone, true);
       setCooldown(OTP_RESEND_COOLDOWN_SEC);
@@ -93,7 +101,7 @@ export default function Otp() {
         {error ? <Notice tone="danger" text={error} /> : null}
         <View style={styles.resend}>
           <Text variant="small" color="textSubtle">
-            Didn't receive code?
+            Didn&apos;t receive code?
           </Text>
           <Pressable onPress={resend} disabled={cooldown > 0 || locked} accessibilityLabel="Resend code">
             <Text variant="smallStrong">{cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend code'}</Text>

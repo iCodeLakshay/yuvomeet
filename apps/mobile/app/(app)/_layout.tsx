@@ -1,5 +1,9 @@
 import { Stack, type NativeStackNavigationOptions } from 'expo-router';
+import { CrashScreen } from '../../src/features/navigation/CrashScreen';
 import { colors, radii } from '../../src/ui';
+
+/** Contain screen crashes inside the signed-in area so session and cache providers survive. */
+export const ErrorBoundary = CrashScreen;
 
 /** Native form sheets for the Stitch bottom drawers (ui-native-modals). */
 const sheet: NativeStackNavigationOptions = {
