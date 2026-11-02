@@ -6,6 +6,7 @@ import { OtpCells } from '../../src/features/auth/OtpCells';
 import { requestOtp, verifyOtp } from '../../src/features/session/auth';
 import { AppError, toAppError } from '../../src/lib/errors';
 import { formatTime } from '../../src/lib/format';
+import { useNow } from '../../src/lib/useNow';
 import { Button, Header, Logo, Notice, Pressable, Screen, space, Text } from '../../src/ui';
 
 const mask = (phone = '') => `+91 ${phone.slice(3, 5)}•••••${phone.slice(-2)}`;
@@ -27,14 +28,8 @@ export default function Otp() {
     return () => clearTimeout(t);
   }, [cooldown]);
 
-  // Lift the lock when it expires, so the screen unlocks without needing another render trigger.
-  useEffect(() => {
-    if (!lockedUntil) return;
-    const t = setTimeout(() => setLockedUntil(null), Math.max(0, Date.parse(lockedUntil) - Date.now()));
-    return () => clearTimeout(t);
-  }, [lockedUntil]);
-
-  const locked = lockedUntil !== null;
+  const now = useNow(1_000);
+  const locked = Boolean(lockedUntil && Date.parse(lockedUntil) > now);
 
   const verify = async (value: string) => {
     if (busy || locked || !phone) return;

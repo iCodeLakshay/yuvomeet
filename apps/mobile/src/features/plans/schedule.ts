@@ -27,17 +27,6 @@ export function dayLabel(key: number, now = Date.now()): DayOption {
   return { key, label: i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : weekday.format(d), sub: dayMonth.format(d) };
 }
 
-/** The next 14 days in IST, labelled Today / Tomorrow / Sat. */
-export function dayOptions(now = Date.now()): DayOption[] {
-  const ist = new Date(now + IST_OFFSET);
-  const today = Date.UTC(ist.getUTCFullYear(), ist.getUTCMonth(), ist.getUTCDate()) - IST_OFFSET;
-  return Array.from({ length: 14 }, (_, i) => {
-    const key = today + i * DAY;
-    const d = new Date(key + 12 * 3_600_000);
-    return { key, label: i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : weekday.format(d), sub: dayMonth.format(d) };
-  });
-}
-
 /**
  * Why a plan of `durationMin` cannot start at `minutes` on the day, or null when it can: from
  * 06:00 IST, at least the lead time away (S-31), and ending by the cutoff unless the venue
@@ -61,16 +50,6 @@ export const isStartAllowed = (...args: Parameters<typeof startProblem>) => star
 export function suggestStart(dayKey: number, durationMin: number, now = Date.now(), lateAllowed = false): number | null {
   for (let m = 6 * 60; m < 24 * 60; m += 30) if (isStartAllowed(dayKey, m, durationMin, now, lateAllowed)) return m;
   return null;
-}
-
-/** Start times every 30 minutes from 07:00 IST that still respect the lead time (S-31). */
-export function timeOptions(dayKey: number, now = Date.now(), lateAllowed = false): number[] {
-  const lastStart = (lateAllowed ? 23 : PLAN_CUTOFF_LOCAL_HOUR - 0.5) * 60;
-  const out: number[] = [];
-  for (let m = 7 * 60; m <= lastStart; m += 30) {
-    if (dayKey + m * 60_000 >= now + PLAN_MIN_LEAD_HOURS * 3_600_000) out.push(m);
-  }
-  return out;
 }
 
 export const atMinutes = (dayKey: number, minutes: number) => new Date(dayKey + minutes * 60_000);

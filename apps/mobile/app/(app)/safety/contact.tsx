@@ -28,6 +28,7 @@ function ContactForm({ initial }: { initial: TrustedContact | null }) {
 
   const persist = async (next: TrustedContact | null) => {
     if (busy) return;
+    setError(null);
     setBusy(true);
     try {
       await saveTrustedContact(next);
@@ -43,7 +44,6 @@ function ContactForm({ initial }: { initial: TrustedContact | null }) {
     const e164 = toE164India(phone);
     if (!name.trim()) return setError('Add a name.');
     if (!e164) return setError('Enter a 10-digit Indian mobile number.');
-    setError(null);
     void persist({ name: name.trim(), phone: e164 });
   };
 

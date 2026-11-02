@@ -15,7 +15,7 @@ export interface OnboardingShellProps {
   back?: boolean;
 }
 
-export const ONBOARDING_STEPS = 4;
+const ONBOARDING_STEPS = 4;
 
 /** Stitch onboarding frame: back arrow, amber step dashes, large title, sticky Continue. */
 export const OnboardingShell = memo(function OnboardingShell({

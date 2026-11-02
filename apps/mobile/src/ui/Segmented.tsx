@@ -26,6 +26,7 @@ function SegmentedInner<T extends string>({ items, value, onChange }: SegmentedP
             key={item.value}
             onPress={() => onChange(item.value)}
             accessibilityRole="tab"
+            accessibilityLabel={item.count ? `${item.label}, ${item.count}` : item.label}
             accessibilityState={{ selected: active }}
             style={[styles.tab, active ? styles.active : null]}
           >

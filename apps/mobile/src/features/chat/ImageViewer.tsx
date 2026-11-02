@@ -3,7 +3,7 @@ import { Modal, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { gutter, IconButton, RemoteImage } from '../../ui';
+import { colors, gutter, IconButton, RemoteImage } from '../../ui';
 
 /** Full-screen chat photo: pinch or double-tap to zoom, drag while zoomed. */
 export const ImageViewer = memo(function ImageViewer({ path, onClose }: { path: string | null; onClose: () => void }) {
@@ -80,7 +80,7 @@ export const ImageViewer = memo(function ImageViewer({ path, onClose }: { path: 
 });
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#000' },
+  root: { flex: 1, backgroundColor: colors.black },
   flex: { flex: 1, backgroundColor: 'transparent' },
   close: { position: 'absolute', right: gutter },
 });

@@ -36,7 +36,7 @@ export default function Welcome() {
       setGoogle(false);
     }
   };
-  // FlatList requires onViewableItemsChanged to keep the same identity; setIndex is stable.
+  // FlatList rejects a changing onViewableItemsChanged; setIndex is stable, so this is too.
   const onViewable = useCallback(({ viewableItems }: { viewableItems: ViewToken[] }) => {
     const first = viewableItems[0];
     if (first?.index != null) setIndex(first.index);

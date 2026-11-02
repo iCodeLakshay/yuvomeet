@@ -9,9 +9,9 @@ type Tone = 'neutral' | 'success' | 'warning' | 'danger' | 'accent' | 'glass' | 
 const tones: Record<Tone, { bg: string; border: string; text: ColorToken }> = {
   neutral: { bg: colors.surface3, border: colors.border, text: 'textMuted' },
   success: { bg: colors.successBg, border: colors.successBorder, text: 'success' },
-  warning: { bg: colors.warningBg, border: 'rgba(245, 158, 11, 0.35)', text: 'warning' },
+  warning: { bg: colors.warningBg, border: colors.warningBorder, text: 'warning' },
   danger: { bg: colors.dangerBg, border: colors.danger, text: 'danger' },
-  accent: { bg: colors.accentSoft, border: 'rgba(234, 179, 8, 0.4)', text: 'accent' },
+  accent: { bg: colors.accentSoft, border: colors.accentBorder, text: 'accent' },
   glass: { bg: colors.scrim, border: colors.borderStrong, text: 'primary' },
   light: { bg: colors.primary, border: colors.primary, text: 'onPrimary' },
 };

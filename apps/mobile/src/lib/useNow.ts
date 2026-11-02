@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'react';
 
 /**
- * The current time as render state, refreshed every `intervalMs`. Use it instead of calling
- * Date.now() during render: the value stays stable within a render and time-based UI (late
- * warnings, "today" groupings, start-time validation) updates while the screen stays open.
+ * Current time that re-renders on an interval. Screens use it instead of calling Date.now()
+ * during render, so time-based UI (lockouts, late-cancel warnings, allowed start times)
+ * stays correct while the screen is open.
  */
 export function useNow(intervalMs = 30_000): number {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), intervalMs);
-    return () => clearInterval(t);
+    const timer = setInterval(() => setNow(Date.now()), intervalMs);
+    return () => clearInterval(timer);
   }, [intervalMs]);
   return now;
 }

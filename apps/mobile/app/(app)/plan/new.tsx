@@ -381,7 +381,7 @@ export default function CreatePlan() {
           setError(null);
           setStart(m);
         }}
-        validate={(m) => startProblem(dayKey, m, duration, Date.now(), late)}
+        validate={(m) => startProblem(dayKey, m, duration, now, late)}
         suggested={suggestStart(dayKey, duration, now, late)}
         onInvalid={(message) => toast.warning(message)}
         title={`Start time · ${day.label}, ${day.sub}`}

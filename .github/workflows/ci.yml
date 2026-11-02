@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   app:
-    name: Typecheck, tests, secret scan
+    name: Typecheck, lint, tests, secret scan
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

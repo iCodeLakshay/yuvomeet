@@ -19,6 +19,7 @@ export const colors = {
   onPrimary: '#121318',
   accent: '#EAB308',
   accentSoft: 'rgba(234, 179, 8, 0.14)',
+  accentBorder: 'rgba(234, 179, 8, 0.4)',
   /** The one icon accent: tab bar, bell, selections, verified badge. Secondary icons stay textMuted / textSubtle. */
   brand: '#38BDF8',
   brandSoft: 'rgba(56, 189, 248, 0.14)',
@@ -27,6 +28,7 @@ export const colors = {
   successBorder: 'rgba(16, 185, 129, 0.35)',
   warning: '#FCD34D',
   warningBg: 'rgba(245, 158, 11, 0.14)',
+  warningBorder: 'rgba(245, 158, 11, 0.4)',
   danger: '#FFB4AB',
   dangerBg: 'rgba(147, 0, 10, 0.35)',
   sos: '#EF4444',
@@ -36,6 +38,10 @@ export const colors = {
   glassActive: 'rgba(255, 255, 255, 0.16)',
   scrim: 'rgba(13, 14, 19, 0.72)',
   overlay: 'rgba(18, 19, 24, 0.55)',
+  /** Darkening over photos (plan covers) and behind menus; black behind the image viewer. */
+  photoScrim: 'rgba(7, 8, 12, 0.32)',
+  menuScrim: 'rgba(7, 8, 12, 0.6)',
+  black: '#000000',
 } as const;
 
 export const radii = { sm: 8, md: 12, lg: 16, xl: 24, xxl: 32, pill: 999 } as const;

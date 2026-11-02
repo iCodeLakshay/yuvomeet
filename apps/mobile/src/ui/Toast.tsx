@@ -20,7 +20,7 @@ interface ToastItem {
 const tones: Record<ToastTone, { icon: IconName; color: ColorToken; border: string }> = {
   success: { icon: 'check-circle', color: 'success', border: colors.successBorder },
   info: { icon: 'info-outline', color: 'brand', border: colors.borderStrong },
-  warning: { icon: 'info-outline', color: 'warning', border: 'rgba(245, 158, 11, 0.45)' },
+  warning: { icon: 'info-outline', color: 'warning', border: colors.warningBorder },
   error: { icon: 'error-outline', color: 'danger', border: colors.danger },
 };
 

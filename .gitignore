@@ -21,3 +21,4 @@ coverage/
 apps/admin/next-env.d.ts
 *.tsbuildinfo
 .ci-export/
+supabase/.temp/

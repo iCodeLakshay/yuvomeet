@@ -12,7 +12,7 @@ import { env } from './env';
  * S-9: crash reports and analytics carry the Supabase user id only. Sentry events pass the
  * shared scrubber; PostHog only receives allow-listed properties. No replay, no autocapture.
  */
-export const posthog = env.posthogKey
+const posthog = env.posthogKey
   ? new PostHog(env.posthogKey, {
       host: env.posthogHost,
       captureAppLifecycleEvents: false,

@@ -243,7 +243,7 @@ export default function PlanDetails() {
             onPress={() => router.push({ pathname: '/safety/sos', params: { planId: plan.id! } })}
           />
         ) : null}
-        {plan.my_status === 'approved' && upcoming ? <Button label="Leave plan" variant="ghost" size="md" onPress={confirmLeave} /> : null}
+        {plan.my_status === 'approved' && upcoming ? <Button label="Leave plan" variant="ghost" size="md" loading={leave.isPending} onPress={confirmLeave} /> : null}
       </View>
     </Screen>
   );
