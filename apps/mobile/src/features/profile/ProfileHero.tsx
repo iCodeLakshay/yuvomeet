@@ -7,7 +7,6 @@ import {
   colors,
   Icon,
   radii,
-  RemoteImage,
   space,
   Text,
   type ColorToken,
@@ -34,24 +33,6 @@ interface Stat {
   label: string;
   color?: ColorToken;
 }
-
-/** Horizontal strip of extra profile photos (positions 1+). */
-const PhotoStrip = memo(function PhotoStrip({ paths }: { paths: string[] }) {
-  if (paths.length === 0) return null;
-  return (
-    <View style={styles.stripRow}>
-      {paths.map((p) => (
-        <RemoteImage
-          key={p}
-          path={p}
-          style={styles.stripThumb}
-          contentFit="cover"
-          accessibilityLabel="Additional profile photo"
-        />
-      ))}
-    </View>
-  );
-});
 
 const StatBar = memo(function StatBar({ stats }: { stats: Stat[] }) {
   return (
@@ -107,7 +88,6 @@ export const ProfileHero = memo(function ProfileHero({
     profile.show_up_rate == null ? "—" : `${profile.show_up_rate}%`;
   const ageLabel = profile.age != null ? String(profile.age) : null;
   // Extra photos (positions 1+) shown as thumbnails below the main avatar.
-  const extraPhotos = (profile.photo_paths ?? []).slice(1);
 
   return (
     <View style={styles.wrap}>
@@ -119,16 +99,25 @@ export const ProfileHero = memo(function ProfileHero({
         verifiedFill={own}
         ring
       />
-      {extraPhotos.length > 0 ? <PhotoStrip paths={extraPhotos} /> : null}
+      {/* {extraPhotos.length > 0 ? <PhotoStrip paths={extraPhotos} /> : null} */}
       <View
         style={styles.titleRow}
         accessible
-        accessibilityLabel={ageLabel ? `${profile.first_name}, ${ageLabel}` : (profile.first_name ?? '')}
+        accessibilityLabel={
+          ageLabel
+            ? `${profile.first_name}, ${ageLabel}`
+            : (profile.first_name ?? "")
+        }
       >
         <Text variant="title1">{profile.first_name}</Text>
         {ageLabel ? (
           <>
-            <AsteriskFillIcon size={14} color={colors.textSubtle} accessibilityElementsHidden importantForAccessibility="no" />
+            <AsteriskFillIcon
+              size={14}
+              color={colors.textSubtle}
+              accessibilityElementsHidden
+              importantForAccessibility="no"
+            />
             <Text variant="title1">{ageLabel}</Text>
           </>
         ) : null}
@@ -206,7 +195,12 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     overflow: "hidden",
   },
-  titleRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
   stats: {
     flexDirection: "row",
     alignSelf: "stretch",

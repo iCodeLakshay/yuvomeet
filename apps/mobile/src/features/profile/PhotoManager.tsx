@@ -1,21 +1,50 @@
-import { MAX_PROFILE_PHOTOS } from '@yuvomeet/shared';
-import { useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
-import { CircleCheckGlassIcon } from '@thesvg/ui-react-native/circle-check';
-import { errorMessage } from '../../lib/errors';
-import { pickImage } from '../../lib/media';
-import { Badge, colors, confirm, Icon, Notice, Pressable, RemoteImage, space, Text, type IconName } from '../../ui';
-import { useAddPhoto, useDeletePhoto, useMyPhotos } from './api';
+import { MAX_PROFILE_PHOTOS } from "@yuvomeet/shared";
+import { useState } from "react";
+import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native";
+import { CircleCheckFillIcon } from "@thesvg/ui-react-native/circle-check";
+import { errorMessage } from "../../lib/errors";
+import { pickImage } from "../../lib/media";
+import {
+  Badge,
+  colors,
+  confirm,
+  Icon,
+  Notice,
+  Pressable,
+  RemoteImage,
+  space,
+  Text,
+  type IconName,
+} from "../../ui";
+import { useAddPhoto, useDeletePhoto, useMyPhotos } from "./api";
 
-const STATUS: Record<string, { label: string; tone: 'success' | 'warning' | 'danger' }> = {
-  approved: { label: 'Approved', tone: 'success' },
-  pending: { label: 'Checking', tone: 'warning' },
-  rejected: { label: 'Not approved', tone: 'danger' },
+const STATUS: Record<
+  string,
+  { label: string; tone: "success" | "warning" | "danger" }
+> = {
+  approved: { label: "Approved", tone: "success" },
+  pending: { label: "Checking", tone: "warning" },
+  rejected: { label: "Not approved", tone: "danger" },
 };
 
-function Action({ icon, label, onPress, disabled }: { icon: IconName; label: string; onPress: () => void; disabled?: boolean }) {
+function Action({
+  icon,
+  label,
+  onPress,
+  disabled,
+}: {
+  icon: IconName;
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+}) {
   return (
-    <Pressable onPress={onPress} disabled={disabled} accessibilityLabel={label} style={styles.action}>
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityLabel={label}
+      style={styles.action}
+    >
       <View style={styles.actionCircle}>
         <Icon name={icon} size={24} />
       </View>
@@ -41,14 +70,17 @@ export function PhotoManager() {
   const selected = list.find((p) => p.id === selectedId) ?? list[0];
   const full = list.length >= MAX_PROFILE_PHOTOS;
 
-  const addFrom = async (source: 'camera' | 'library') => {
+  const addFrom = async (source: "camera" | "library") => {
     setError(null);
     try {
       const uri = await pickImage(source, true);
       if (!uri) return;
       const result = await add.mutateAsync({ uri, position: list.length });
       setSelectedId(result.id);
-      if (result.status === 'rejected') setError('That photo was not approved. Use a clear photo of your face.');
+      if (result.status === "rejected")
+        setError(
+          "That photo was not approved. Use a clear photo of your face.",
+        );
     } catch (e) {
       setError(errorMessage(e));
     }
@@ -56,7 +88,15 @@ export function PhotoManager() {
 
   const removeSelected = async () => {
     if (!selected) return;
-    if (!(await confirm({ title: 'Remove this photo?', confirmLabel: 'Remove', icon: 'delete-outline', danger: true }))) return;
+    if (
+      !(await confirm({
+        title: "Remove this photo?",
+        confirmLabel: "Remove",
+        icon: "delete-outline",
+        danger: true,
+      }))
+    )
+      return;
     setError(null);
     try {
       await remove.mutateAsync(selected.id);
@@ -84,18 +124,42 @@ export function PhotoManager() {
             <ActivityIndicator color={colors.text} />
           </View>
         ) : null}
-        <Pressable onPress={() => addFrom('camera')} disabled={full || add.isPending} accessibilityLabel="Take a photo" style={styles.cameraBadge}>
+        <Pressable
+          onPress={() => addFrom("camera")}
+          disabled={full || add.isPending}
+          accessibilityLabel="Take a photo"
+          style={styles.cameraBadge}
+        >
           <Icon name="photo-camera" size={22} color="onPrimary" />
         </Pressable>
       </View>
 
       <View style={styles.actions}>
-        <Action icon="photo-camera" label="Camera" onPress={() => addFrom('camera')} disabled={full || add.isPending} />
-        <Action icon="image" label="Gallery" onPress={() => addFrom('library')} disabled={full || add.isPending} />
-        <Action icon="delete-outline" label="Remove" onPress={removeSelected} disabled={!selected || remove.isPending} />
+        <Action
+          icon="photo-camera"
+          label="Camera"
+          onPress={() => addFrom("camera")}
+          disabled={full || add.isPending}
+        />
+        <Action
+          icon="image"
+          label="Gallery"
+          onPress={() => addFrom("library")}
+          disabled={full || add.isPending}
+        />
+        <Action
+          icon="delete-outline"
+          label="Remove"
+          onPress={removeSelected}
+          disabled={!selected || remove.isPending}
+        />
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.strip}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.strip}
+      >
         {list.map((p) => {
           const s = STATUS[p.status] ?? STATUS.pending!;
           return (
@@ -103,12 +167,17 @@ export function PhotoManager() {
               key={p.id}
               onPress={() => setSelectedId(p.id)}
               accessibilityLabel={`Photo, ${s.label}`}
-              style={[styles.thumb, selected?.id === p.id ? styles.thumbOn : null]}
+              style={[
+                styles.thumb,
+                selected?.id === p.id ? styles.thumbOn : null,
+              ]}
             >
-              <RemoteImage path={p.path} style={styles.thumbImage} />
-              {p.status === 'approved' ? (
+              <View style={styles.thumbClip}>
+                <RemoteImage path={p.path} style={styles.thumbImage} />
+              </View>
+              {p.status === "approved" ? (
                 <View style={styles.thumbApprovedIcon}>
-                  <CircleCheckGlassIcon size={22} color={colors.success} />
+                  <CircleCheckFillIcon size={22} color={colors.success} />
                 </View>
               ) : (
                 <View style={styles.thumbBadge}>
@@ -119,8 +188,15 @@ export function PhotoManager() {
           );
         })}
         {Array.from({ length: Math.max(0, 2 - list.length) }, (_, i) => (
-          <Pressable key={`empty-${i}`} onPress={() => addFrom('library')} accessibilityLabel="Add photo" style={[styles.thumb, styles.thumbEmpty]}>
-            <Icon name="add" size={24} color="textSubtle" />
+          <Pressable
+            key={`empty-${i}`}
+            onPress={() => addFrom("library")}
+            accessibilityLabel="Add photo"
+            style={styles.thumb}
+          >
+            <View style={styles.thumbEmpty}>
+              <Icon name="add" size={24} color="textSubtle" />
+            </View>
           </Pressable>
         ))}
       </ScrollView>
@@ -132,26 +208,43 @@ export function PhotoManager() {
 const SIZE = 220;
 
 const styles = StyleSheet.create({
-  wrap: { gap: space.xl, alignItems: 'center' },
+  wrap: { gap: space.xl, alignItems: "center" },
   preview: { width: SIZE, height: SIZE, marginTop: space.md },
-  circle: { width: SIZE, height: SIZE, borderRadius: SIZE / 2, borderWidth: 3, borderColor: colors.borderStrong },
-  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface2 },
-  busy: { ...StyleSheet.absoluteFill, borderRadius: SIZE / 2, backgroundColor: colors.overlay, alignItems: 'center', justifyContent: 'center' },
+  circle: {
+    width: SIZE,
+    height: SIZE,
+    borderRadius: SIZE / 2,
+    borderWidth: 3,
+    borderColor: colors.borderStrong,
+  },
+  empty: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.surface2,
+  },
+  busy: {
+    ...StyleSheet.absoluteFill,
+    borderRadius: SIZE / 2,
+    backgroundColor: colors.overlay,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   cameraBadge: {
-    position: 'absolute',
+    position: "absolute",
     right: 8,
     bottom: 8,
     width: 52,
     height: 52,
     borderRadius: 26,
     backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: 4,
     borderColor: colors.bg,
   },
-  actions: { flexDirection: 'row', gap: space.xl },
-  action: { alignItems: 'center', gap: space.sm, minWidth: 64 },
+  actions: { flexDirection: "row", gap: space.xl },
+  action: { alignItems: "center", gap: space.sm, minWidth: 64 },
   actionCircle: {
     width: 56,
     height: 56,
@@ -159,14 +252,39 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface2,
     borderWidth: 1,
     borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   strip: { gap: space.sm, paddingHorizontal: space.xs },
-  thumb: { width: 84, height: 108, borderRadius: 16, overflow: 'hidden', borderWidth: 2, borderColor: 'transparent' },
+  thumb: {
+    width: 84,
+    height: 108,
+    borderRadius: 16,
+    // overflow must be visible so the corner badge renders outside the rounded rect
+    overflow: "visible",
+    borderWidth: 2,
+    borderColor: "transparent",
+  },
   thumbOn: { borderColor: colors.accent },
+  // Inner view clips the photo to the rounded corners without clipping the badge
+  thumbClip: {
+    flex: 1,
+    borderRadius: 14,
+    overflow: "hidden",
+  },
   thumbImage: { flex: 1 },
-  thumbEmpty: { backgroundColor: colors.surface1, borderColor: colors.border, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
-  thumbBadge: { position: 'absolute', left: 4, bottom: 4 },
-  thumbApprovedIcon: { position: 'absolute', right: 4, top: 4 },
+  thumbEmpty: {
+    flex: 1,
+    backgroundColor: colors.surface1,
+    borderColor: colors.border,
+    borderWidth: 2,
+    borderStyle: "dashed",
+    borderRadius: 14,
+    overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  thumbBadge: { position: "absolute", left: 4, bottom: 4 },
+  // Center the 22 px badge circle on the top-right corner of the thumbnail
+  thumbApprovedIcon: { position: "absolute", right: -11, top: -11, zIndex: 1 },
 });

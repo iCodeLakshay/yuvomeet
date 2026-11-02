@@ -8,6 +8,7 @@ import { qk, queryClient } from '../../lib/query';
 import { readJson, storage, writeJson } from '../../lib/storage';
 import { supabase, type Tables } from '../../lib/supabase';
 import { startSpan } from '../../lib/telemetry';
+import { toast } from '../../ui';
 
 export type Message = Pick<
   Tables<'messages'>,
@@ -90,7 +91,12 @@ async function flushOutbox(conversationId: string) {
     if (data) upsertMessage(conversationId, data);
     if (item.mentionIds?.length) {
       const mention = await supabase.rpc('notify_mentions', { p_message_id: item.id, p_user_ids: item.mentionIds });
-      if (mention.error && toAppError(mention.error).code === 'NETWORK') return;
+      if (mention.error) {
+        if (toAppError(mention.error).code !== 'NETWORK') {
+          toast.error('Mention notification failed. It will be retried.');
+        }
+        return; // keep in outbox so the next flush retries, same as the network path
+      }
     }
     done();
     writeOutbox(conversationId, readOutbox(conversationId).filter((m) => m.id !== item.id));

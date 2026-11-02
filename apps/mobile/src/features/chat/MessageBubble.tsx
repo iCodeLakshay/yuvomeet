@@ -206,7 +206,7 @@ export const MessageBubble = memo(function MessageBubble({
                 delayLongPress={300}
                 pressScale={0.98}
                 accessibilityLabel={`${mine ? 'You' : name}: ${isPhoto ? 'photo' : message.body}`}
-                accessibilityHint={isPhoto && revealed ? 'Tap to open full screen. Long press for options' : 'Long press for options. Swipe to reply'}
+                accessibilityHint={isPhoto && revealed ? 'Tap to open full screen. Long press for options' : canReply ? 'Long press for options. Swipe to reply' : 'Long press for options'}
                 style={[styles.bubble, mine ? styles.mine : styles.theirs, isPhoto ? styles.bubblePhoto : null, message.pending ? styles.pending : null]}
               >
                 <View style={styles.bubbleInner}>
