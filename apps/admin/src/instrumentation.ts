@@ -10,6 +10,8 @@ export function register() {
     sendDefaultPii: false,
     tracesSampleRate: 0.1,
     beforeSend: (event) => scrubSentryEvent(event),
+    // Transactions carry URLs and breadcrumbs too, so they pass the same scrubber (audit APP-13).
+    beforeSendTransaction: (event) => scrubSentryEvent(event),
   });
 }
 

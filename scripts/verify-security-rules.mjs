@@ -2,7 +2,7 @@
  * S-2 secret scan, run in CI next to the pgTAP suite (supabase/tests), which covers the
  * database rules (S-1 RLS, S-5 no phone columns, S-46 audit_log, grants).
  *
- * 1. Client code (apps/mobile, apps/admin) never names a server-only secret.
+ * 1. Client code (apps/mobile, apps/admin, apps/landing) never names a server-only secret.
  * 2. Nothing in the repo looks like a live credential (API keys, private keys).
  */
 import fs from 'node:fs';
@@ -35,6 +35,7 @@ const SERVER_SECRETS = [
   'OTP_HMAC_KEY',
   'POSTHOG_PERSONAL_API_KEY',
   'RAZORPAY_KEY_SECRET',
+  'WAITLIST_PEPPER',
 ];
 
 const CREDENTIAL_PATTERNS = [
@@ -47,7 +48,7 @@ const CREDENTIAL_PATTERNS = [
 ];
 
 const failures = [];
-const clientFiles = ['apps/mobile/app', 'apps/mobile/src', 'apps/mobile/app.config.ts', 'apps/admin/src']
+const clientFiles = ['apps/mobile/app', 'apps/mobile/src', 'apps/mobile/app.config.ts', 'apps/admin/src', 'apps/landing/src']
   .map((p) => path.join(ROOT, p))
   .filter((p) => fs.existsSync(p))
   .flatMap((p) => (fs.statSync(p).isDirectory() ? walk(p) : [p]));

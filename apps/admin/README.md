@@ -1,4 +1,4 @@
-# Yuvomeet admin console
+# Hengout admin console
 
 Next.js App Router console for reviewers and admins (AD-1 to AD-4, VR-6). Deployed on Vercel in `bom1`.
 

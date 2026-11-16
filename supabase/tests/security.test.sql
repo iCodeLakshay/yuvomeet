@@ -1,7 +1,7 @@
 -- pgTAP suite for the security.md review checklist. Run with `supabase test db`.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(79);
+select plan(90);
 
 -- -----------------------------------------------------------------------------
 -- Test helpers (rolled back with the transaction)
@@ -266,6 +266,8 @@ reset role;
 -- -----------------------------------------------------------------------------
 -- S-43, S-44: admin roles and MFA
 -- -----------------------------------------------------------------------------
+-- The role is read live from private.admin_roles (20261116000002); the JWT supplies only aal.
+insert into private.admin_roles (user_id, role) values (tests.id('woman2'), 'reviewer');
 select tests.login(tests.id('woman2'), '{"app_role": "reviewer", "aal": "aal1"}');
 select throws_ok($$ select public.admin_set_user_status(tests.id('man'), 'suspended', 'test') $$,
   '42501', null, 'S-44: a reviewer without aal2 is refused');
@@ -277,6 +279,22 @@ select lives_ok($$ select public.admin_set_user_status(tests.id('man'), 'suspend
 select tests.logout();
 select is((select count(*)::int from public.audit_log where action = 'user_suspended' and subject_id = tests.id('man')), 1,
   'S-45: the suspension wrote an audit row');
+
+-- Audit 2026-11-16: DB-1 (NULL status), DB-6 (staff), DB-2 (live role).
+insert into ids values ('staff', tests.member('Staff', 'man'));
+insert into private.admin_roles (user_id, role) values (tests.id('staff'), 'admin');
+select tests.login(tests.id('man'), '{"aal": "aal2"}');
+select throws_ok($$ select public.admin_set_user_status(tests.id('woman'), null, 'x') $$,
+  '42501', null, 'DB-1: a NULL status does not bypass the admin check for a plain member');
+select tests.login(tests.id('woman2'), '{"app_role": "reviewer", "aal": "aal2"}');
+select throws_ok($$ select public.admin_set_user_status(tests.id('staff'), 'suspended', 'x') $$,
+  '42501', null, 'DB-6: a reviewer cannot suspend an admin');
+select tests.logout();
+delete from private.admin_roles where user_id = tests.id('woman2');
+select tests.login(tests.id('woman2'), '{"app_role": "reviewer", "aal": "aal2"}');
+select throws_ok($$ select public.admin_set_user_status(tests.id('man'), 'suspended', 'x') $$,
+  '42501', null, 'DB-2: a removed reviewer is refused even though the token still says reviewer');
+select tests.logout();
 
 -- -----------------------------------------------------------------------------
 -- VR-5: two reports from distinct verified users suspend the target
@@ -378,6 +396,24 @@ select throws_ok($$ select count(*) from private.analytics_outbox $$, '42501', n
 select throws_ok($$ select * from public.svc_analytics_pending(10) $$, '42501', null,
   'S-8: only the service role can drain the outbox');
 select tests.logout();
+
+-- Web waitlist (20261116000001): only the service role can write; nobody else can read or call it.
+select ok(not has_function_privilege('anon', 'public.svc_web_waitlist_join(text, text, text, text, int, int)', 'execute'),
+  'web waitlist: anon cannot call the join RPC');
+select ok(not has_function_privilege('authenticated', 'public.svc_web_waitlist_join(text, text, text, text, int, int)', 'execute'),
+  'web waitlist: members cannot call the join RPC');
+select ok(has_function_privilege('service_role', 'public.svc_web_waitlist_join(text, text, text, text, int, int)', 'execute'),
+  'web waitlist: the service role can call the join RPC');
+select ok(not has_table_privilege('anon', 'private.web_waitlist', 'select') and not has_table_privilege('authenticated', 'private.web_waitlist', 'select'),
+  'web waitlist: emails are not readable by anon or members');
+select is(public.svc_web_waitlist_join(repeat('a', 64), 'Web@Example.com', 'Kota', 'Email me once when Yuvomeet opens in my city.', 600, 2),
+  true, 'web waitlist: a first signup is accepted');
+select is(public.svc_web_waitlist_join(repeat('a', 64), 'web@example.com', 'Kota', 'Email me once when Yuvomeet opens in my city.', 600, 2),
+  true, 'web waitlist: a repeat signup answers the same (no enumeration)');
+select is((select count(*)::int from private.web_waitlist where email = 'web@example.com' and city = 'Kota'), 1,
+  'web waitlist: a repeat signup is stored once, lower-cased');
+select is(public.svc_web_waitlist_join(repeat('a', 64), 'other@example.com', 'Kota', 'Email me once when Yuvomeet opens in my city.', 600, 2),
+  false, 'web waitlist: the per-connection limit refuses the third try');
 
 select * from finish();
 rollback;

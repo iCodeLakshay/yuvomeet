@@ -22,3 +22,10 @@ apps/admin/next-env.d.ts
 *.tsbuildinfo
 .ci-export/
 supabase/.temp/
+
+# Landing: static export output and the taste-skill checker's Chrome profiles
+apps/landing/out/
+apps/landing/.taste-skill/chrome-*/
+apps/landing/next-env.d.ts
+apps/landing/test-results/
+apps/landing/playwright-report/

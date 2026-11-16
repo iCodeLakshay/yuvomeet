@@ -133,3 +133,7 @@ verify_jwt = false
 
 [functions.payments-refunds]
 verify_jwt = false
+
+# Public landing-page waitlist: no account, so no JWT. CORS, size and rate limits are in the function.
+[functions.join-waitlist]
+verify_jwt = false

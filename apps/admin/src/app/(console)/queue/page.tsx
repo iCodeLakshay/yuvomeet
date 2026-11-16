@@ -1,7 +1,6 @@
-import Link from 'next/link';
-import { Badge, Due, Empty, Page, Tabs, UserLink } from '@/components/ui';
+import { Badge, Card, Due, Empty, LinkButton, LoadError, Page, Pager, Tabs, UserLink } from '@/components/ui';
 import { requireAdmin } from '@/lib/auth';
-import { humanize } from '@/lib/format';
+import { humanize, paging } from '@/lib/format';
 
 const FILTERS: [string, string][] = [
   ['open', 'Open'],
@@ -12,11 +11,16 @@ const FILTERS: [string, string][] = [
 ];
 
 /** AD-1, SF-7: severe first, then by due time. */
-export default async function Queue({ searchParams }: { searchParams: Promise<{ filter?: string }> }) {
+export default async function Queue({ searchParams }: { searchParams: Promise<{ filter?: string; page?: string; size?: string }> }) {
   const { supabase, userId } = await requireAdmin();
-  const filter = (await searchParams).filter ?? 'open';
+  const sp = await searchParams;
+  const filter = sp.filter ?? 'open';
+  const { page, size, from, to } = paging(sp.page, sp.size);
 
-  let q = supabase.from('moderation_queue').select('*').limit(200);
+  let q = supabase
+    .from('moderation_queue')
+    .select('id, subject, severity, status, ai_verdict, ai_labels, user_id, due_at', { count: 'exact' })
+    .range(from, to);
   if (filter === 'closed') q = q.in('status', ['approved', 'rejected']).order('decided_at', { ascending: false });
   else {
     q = q.order('severity').order('due_at');
@@ -25,14 +29,15 @@ export default async function Queue({ searchParams }: { searchParams: Promise<{ 
     else q = q.in('status', ['pending', 'in_review', 'escalated']);
     if (filter === 'severe') q = q.eq('severity', 'severe');
   }
-  const { data: items, error } = await q;
+  const { data: items, count, error } = await q;
 
   return (
-    <Page title="Review queue" subtitle="Severe items need a human decision within 12 hours, standard within 24.">
+    <Page title="Review queue" icon="queue" subtitle="Severe items need a human decision within 12 hours, standard within 24.">
       <Tabs base="/queue" param="filter" value={filter} items={FILTERS} />
-      {error ? <p className="error">{error.message}</p> : null}
+      <LoadError error={error} />
+      <Card flush>
       {items?.length ? (
-        <table>
+        <div className="tablewrap"><table>
           <thead>
             <tr>
               <th>Subject</th>
@@ -62,16 +67,20 @@ export default async function Queue({ searchParams }: { searchParams: Promise<{ 
                   <UserLink id={i.user_id} />
                 </td>
                 <td>{i.status === 'approved' || i.status === 'rejected' ? <span className="muted">done</span> : <Due at={i.due_at} />}</td>
-                <td>
-                  <Link href={`/queue/${i.id}`}>Open</Link>
+                <td className="actions">
+                  <LinkButton href={`/queue/${i.id}`} size="sm" icon="next">
+                    Open
+                  </LinkButton>
                 </td>
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       ) : (
-        <Empty>Nothing here. Good work.</Empty>
+        <Empty icon="check">Nothing here. Good work.</Empty>
       )}
+      </Card>
+      <Pager base="/queue" params={{ filter: filter === 'open' ? undefined : filter }} page={page} total={count} size={size} />
     </Page>
   );
 }

@@ -1,0 +1,21 @@
+{
+ "palettes": [],
+ "types": [],
+ "dealt": [
+  "epilogue",
+  "funnel",
+  "outfit"
+ ],
+ "moments": [
+  {
+   "id": "counter-rolls",
+   "at": "2026-11-14T13:15:50.605Z",
+   "seed": "89a5c601"
+  },
+  {
+   "id": "word-highlight",
+   "at": "2026-11-16T06:19:59.966Z",
+   "seed": "fffd452b"
+  }
+ ]
+}

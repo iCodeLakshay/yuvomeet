@@ -1,16 +1,20 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
+import { FeedbackHost } from '@/components/feedback';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Yuvomeet Admin',
+  title: 'Hengout Admin',
   robots: { index: false, follow: false },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        {children}
+        <FeedbackHost />
+      </body>
     </html>
   );
 }

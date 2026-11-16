@@ -1,6 +1,8 @@
 'use client';
 
 import { useActionState, useEffect, useState, useTransition } from 'react';
+import { toast } from '@/components/feedback';
+import { Icon } from '@/components/Icon';
 import { enrollTotp, verifyTotp, type EnrollState } from './actions';
 
 export function MfaForm({ factorId }: { factorId: string | null }) {
@@ -11,6 +13,12 @@ export function MfaForm({ factorId }: { factorId: string | null }) {
   useEffect(() => {
     if (!factorId) startTransition(async () => setEnrol(await enrollTotp()));
   }, [factorId]);
+  useEffect(() => {
+    if (state.error) toast('error', 'Code not accepted', state.error);
+  }, [state]);
+  useEffect(() => {
+    if (enrol?.error) toast('error', 'Set-up failed', enrol.error);
+  }, [enrol]);
 
   const id = factorId ?? enrol?.factorId;
   return (
@@ -32,7 +40,8 @@ export function MfaForm({ factorId }: { factorId: string | null }) {
       </label>
       {state.error ? <p className="error" role="alert">{state.error}</p> : null}
       <button className="btn primary" disabled={pending || starting || !id}>
-        Verify
+        <Icon name={pending || starting ? 'refresh' : 'verify'} className={pending || starting ? 'spin' : undefined} />
+        <span>Verify</span>
       </button>
     </form>
   );

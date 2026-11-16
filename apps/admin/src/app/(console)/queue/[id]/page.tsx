@@ -8,6 +8,7 @@ import { formatDateTime, humanize } from '@/lib/format';
 import { signMedia } from '@/lib/media';
 import type { Db } from '@/lib/supabase';
 import { claimItem, decideItem, removeMessage } from '../../actions';
+import { releaseItem } from '../../manage-actions';
 
 /** What approve / reject mean for each subject (admin_decide_item). */
 const BUTTONS: Record<string, [string, string]> = {
@@ -51,7 +52,7 @@ async function Thread({ db, messageId, itemId }: { db: Db; messageId: string; it
         </div>
       ))}
       {focus.status !== 'rejected' ? (
-        <ActionForm action={removeMessage} hidden={{ message_id: focus.id, item_id: itemId, plan_id: convo?.plan_id ?? '' }} buttons={[{ label: 'Remove highlighted message', tone: 'danger' }]} />
+        <ActionForm action={removeMessage} hidden={{ message_id: focus.id, item_id: itemId, plan_id: convo?.plan_id ?? '' }} buttons={[{ label: 'Remove highlighted message', tone: 'danger', icon: 'trash' }]} />
       ) : null}
     </div>
   );
@@ -68,7 +69,7 @@ async function Context({ db, item }: { db: Db; item: { id: string; subject: stri
       const path = photo?.path ?? msg?.image_path ?? cover?.path;
       const urls = await signMedia(db, [path]);
       return (
-        <Card title={photo ? 'Profile photo' : cover ? 'Plan banner' : 'Chat photo'}>
+        <Card icon="image" title={photo ? 'Profile photo' : cover ? 'Plan banner' : 'Chat photo'}>
           {path && urls.get(path) ? (
             <div className="thumbs">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -88,13 +89,13 @@ async function Context({ db, item }: { db: Db; item: { id: string; subject: stri
       ]);
       if (msg) {
         return (
-          <Card title="Held chat message">
+          <Card icon="message" title="Held chat message">
             <Thread db={db} messageId={msg.id} itemId={item.id} />
           </Card>
         );
       }
       return (
-        <Card title="Profile bio">
+        <Card icon="file" title="Profile bio">
           <p>{profile?.bio ?? '—'}</p>
           <Badge value={profile?.bio_status} />
         </Card>
@@ -103,7 +104,7 @@ async function Context({ db, item }: { db: Db; item: { id: string; subject: stri
     case 'verification': {
       const { data: checks } = await db.from('verification_checks').select('*').eq('user_id', item.subject_id).order('created_at', { ascending: false });
       return (
-        <Card title="Verification checks (scores and reason codes only, S-47)">
+        <Card icon="verify" title="Verification checks (scores and reason codes only, S-47)">
           <table>
             <thead>
               <tr>
@@ -140,7 +141,7 @@ async function Context({ db, item }: { db: Db; item: { id: string; subject: stri
       if (!report) return <Empty>Report not found.</Empty>;
       return (
         <>
-          <Card title="Report">
+          <Card icon="flag" title="Report">
             <Facts
               items={[
                 ['Reason', <Badge key="r" value={report.reason} />],
@@ -154,7 +155,7 @@ async function Context({ db, item }: { db: Db; item: { id: string; subject: stri
             {report.details ? <p>{report.details}</p> : <p className="muted">No details given.</p>}
           </Card>
           {report.message_id ? (
-            <Card title="Reported message with context">
+            <Card icon="message" title="Reported message with context">
               <Thread db={db} messageId={report.message_id} itemId={item.id} />
             </Card>
           ) : null}
@@ -165,7 +166,7 @@ async function Context({ db, item }: { db: Db; item: { id: string; subject: stri
       const since = new Date(Date.now() - 30 * 86_400_000).toISOString();
       const { data: ratings } = await db.from('ratings').select('*').eq('ratee_id', item.subject_id).eq('felt_safe', false).gte('created_at', since);
       return (
-        <Card title="Unsafe ratings in the last 30 days">
+        <Card icon="alert" title="Unsafe ratings in the last 30 days">
           <table>
             <thead>
               <tr>
@@ -195,13 +196,13 @@ async function Context({ db, item }: { db: Db; item: { id: string; subject: stri
     }
     case 'venue':
       return (
-        <Card title="Venue">
+        <Card icon="venue" title="Venue">
           <Link href={`/venues/${item.subject_id}`}>Open venue</Link>
         </Card>
       );
     case 'appeal':
       return (
-        <Card title="Appeal">
+        <Card icon="appeal" title="Appeal">
           <p>
             Answer this from <Link href="/appeals">Appeals</Link> so the member gets your written response.
           </p>
@@ -222,13 +223,13 @@ export default async function QueueItem({ params }: { params: Promise<{ id: stri
   const claimedByOther = item.status === 'in_review' && item.assigned_to !== userId;
   const [approve, reject] = BUTTONS[item.subject] ?? ['Approve', 'Reject'];
   const buttons: ActionButton[] = [
-    { label: approve, value: 'approve', tone: 'primary' },
-    { label: reject, value: 'reject', tone: 'danger' },
-    ...(item.status !== 'escalated' ? [{ label: 'Escalate to admin', value: 'escalate' }] : []),
+    { label: approve, value: 'approve', tone: 'success', icon: 'check' },
+    { label: reject, value: 'reject', tone: 'danger', icon: 'reject' },
+    ...(item.status !== 'escalated' ? [{ label: 'Escalate to admin', value: 'escalate', icon: 'shieldAlert' as const }] : []),
   ];
 
   return (
-    <Page title={humanize(item.subject)} subtitle={<Link href="/queue">Back to queue</Link>}>
+    <Page title={humanize(item.subject)} icon="queue" crumbs={[{ href: '/queue', label: 'Review queue' }]} subtitle={`Opened ${formatDateTime(item.created_at)}`}>
       <Card>
         <Facts
           items={[
@@ -245,9 +246,17 @@ export default async function QueueItem({ params }: { params: Promise<{ id: stri
       </Card>
       <Context db={supabase} item={item} />
       {open && item.subject !== 'appeal' ? (
-        <Card title="Decision">
+        <Card
+          title="Decision"
+          icon="check"
+          actions={
+            item.status === 'in_review' && (item.assigned_to === userId || role === 'admin') ? (
+              <ActionForm action={releaseItem} hidden={{ item_id: item.id }} reason={false} buttons={[{ label: 'Release claim', icon: 'undo' }]} />
+            ) : null
+          }
+        >
           {item.status === 'pending' || claimedByOther ? (
-            <ActionForm action={claimItem} hidden={{ item_id: item.id }} reason={false} buttons={[{ label: claimedByOther ? 'Take over (claim older than 30 min)' : 'Claim this item' }]} />
+            <ActionForm action={claimItem} hidden={{ item_id: item.id }} reason={false} buttons={[{ label: claimedByOther ? 'Take over (claim older than 30 min)' : 'Claim this item', icon: 'claim' }]} />
           ) : null}
           {item.status === 'escalated' && role !== 'admin' ? (
             <p className="muted">Escalated items are decided by an admin.</p>

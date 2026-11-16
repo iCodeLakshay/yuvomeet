@@ -51,4 +51,7 @@ export function serve(handler: (req: Request) => Promise<Response>): void {
   });
 }
 
-export const isLocal = () => (Deno.env.get('APP_ENV') ?? 'local') === 'local';
+// The stubs (verification passes, photos approved, SMS skipped) are for throwaway dev projects only.
+// A deployment that forgets APP_ENV must fail closed, so an unset value counts as production, and
+// local development sets APP_ENV=local explicitly (functions/.env.example).
+export const isLocal = () => (Deno.env.get('APP_ENV') ?? 'production') === 'local';

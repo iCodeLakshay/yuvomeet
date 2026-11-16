@@ -1,9 +1,10 @@
 import { KOTA_AREAS } from '@yuvomeet/shared';
-import { notFound, redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { ActionForm } from '@/components/ActionForm';
 import { Badge, Card, Page } from '@/components/ui';
-import { requireAdmin } from '@/lib/auth';
+import { requireFullAdmin } from '@/lib/auth';
 import { saveVenue, setVenueStatus } from '../../actions';
+import { deleteVenue } from '../../manage-actions';
 
 type Hours = { all?: { open?: string; close?: string } };
 
@@ -16,8 +17,7 @@ const CHECKLIST = [
 /** Venue form (create when id = "new") and status actions. */
 export default async function VenueForm({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { supabase, role } = await requireAdmin();
-  if (role !== 'admin') redirect('/queue');
+  const { supabase } = await requireFullAdmin();
   const isNew = id === 'new';
   const [{ data: venue }, { data: cities }] = await Promise.all([
     isNew ? Promise.resolve({ data: null }) : supabase.from('venues').select('*').eq('id', id).maybeSingle(),
@@ -27,17 +27,33 @@ export default async function VenueForm({ params }: { params: Promise<{ id: stri
   const hours = (venue?.hours as Hours | null)?.all;
 
   return (
-    <Page title={venue?.name ?? 'New venue'} subtitle={venue ? <Badge value={venue.status} /> : 'Starts as a draft until you approve it.'}>
-      <Card title="Checklist (SF-1)">
+    <Page
+      title={venue?.name ?? 'New venue'}
+      icon="venue"
+      crumbs={[{ href: '/venues', label: 'Venues' }]}
+      subtitle={venue ? <Badge value={venue.status} /> : 'Starts as a draft until you approve it.'}
+      actions={
+        venue ? (
+          <ActionForm
+            dialog={{ label: 'Delete', icon: 'trash', tone: 'danger', title: 'Delete venue', description: 'Only for venues no plan ever used. Otherwise archive it.' }}
+            action={deleteVenue}
+            hidden={{ venue_id: venue.id }}
+            confirm="Delete this venue permanently?"
+            buttons={[{ label: 'Delete venue', tone: 'danger', icon: 'trash' }]}
+          />
+        ) : null
+      }
+    >
+      <Card title="Checklist (SF-1)" icon="list">
         <ul>
           {CHECKLIST.map((c) => (
             <li key={c}>{c}</li>
           ))}
         </ul>
       </Card>
-      <Card title="Details">
-        <ActionForm action={saveVenue} hidden={{ venue_id: venue?.id ?? '' }} buttons={[{ label: isNew ? 'Create venue' : 'Save changes', tone: 'primary' }]}>
-          <div className="grid2">
+      <Card title="Details" icon="pin">
+        <ActionForm action={saveVenue} hidden={{ venue_id: venue?.id ?? '' }} buttons={[{ label: isNew ? 'Create venue' : 'Save changes', tone: 'primary', icon: isNew ? 'plus' : 'save' }]}>
+          <div className="formgrid">
             <label className="field">
               <span>Name</span>
               <input name="name" defaultValue={venue?.name} required maxLength={80} />
@@ -90,23 +106,24 @@ export default async function VenueForm({ params }: { params: Promise<{ id: stri
               <input name="close" type="time" defaultValue={hours?.close ?? '21:00'} required />
             </label>
           </div>
-          <label className="row">
+          <label className="check">
             <input type="checkbox" name="partner" defaultChecked={venue?.partner} /> Partner venue (staff know groups are coming)
           </label>
-          <label className="row">
+          <label className="check">
             <input type="checkbox" name="late_events_allowed" defaultChecked={venue?.late_events_allowed} /> Allow plans after 9 PM (S-32 override)
           </label>
         </ActionForm>
       </Card>
       {venue ? (
-        <Card title="Status">
+        <Card title="Status" icon="check">
           <ActionForm
             action={setVenueStatus}
             hidden={{ venue_id: venue.id }}
+            confirm="Change this venue's status? Plans can only be hosted at approved venues."
             buttons={[
-              ...(venue.status !== 'approved' ? [{ label: 'Approve', value: 'approved', tone: 'primary' as const }] : []),
-              ...(venue.status !== 'archived' ? [{ label: 'Archive', value: 'archived', tone: 'danger' as const }] : []),
-              ...(venue.status !== 'draft' ? [{ label: 'Back to draft', value: 'draft' }] : []),
+              ...(venue.status !== 'approved' ? [{ label: 'Approve', value: 'approved', tone: 'success' as const, icon: 'check' as const }] : []),
+              ...(venue.status !== 'archived' ? [{ label: 'Archive', value: 'archived', tone: 'danger' as const, icon: 'archive' as const }] : []),
+              ...(venue.status !== 'draft' ? [{ label: 'Back to draft', value: 'draft', icon: 'undo' as const }] : []),
             ]}
           />
         </Card>

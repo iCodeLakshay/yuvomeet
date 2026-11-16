@@ -101,6 +101,33 @@ Edge Functions also apply per-user limits (sliding window in `private.edge_rate`
 - **S-46** `audit_log` is insert-only: no `update` or `delete` grant for any role, plus a trigger that raises on update or delete. Retention purges (if ever needed) run as a migration, not from the app.
 - **S-47** Admins viewing KYC evidence see scores and reason codes, not ID images (we do not have them, see S-39).
 
+### Audit of 2026-11-16: fixed, and what is left
+
+Fixed in migrations `20261116000002_admin_authz_fixes.sql` and `20261116000003_webhook_retry.sql`, the admin app and the Edge Functions:
+
+- **A-1 (high)** `private.require_admin` let a NULL argument skip the check, so any signed-in member could call `admin_set_user_status` with a NULL status and read the target's profile row from the error. The check is NULL-safe, and the RPC rejects a NULL status.
+- **A-2** `app.is_admin()` and `app.is_full_admin()` now also read the live `private.admin_roles` row. A removed or demoted admin loses access at once instead of at token expiry (up to 1 h). `admin_set_role` also ends the sessions of someone it demotes or removes, refuses to change your own role, and records the previous role.
+- **A-3** Appeals: lifting a ban or an under-18 block is admin-only by the account's real state, not by the subject the appellant chose. Nobody answers their own appeal, and reviewers cannot answer escalated ones.
+- **A-4** Reviewers cannot suspend staff, nobody changes their own status, and "restore" works only on suspended or banned accounts that are not under-18 blocks.
+- **A-5** Admin actions validate uuids, enums, lengths, coordinates and times before calling an RPC. Database error text no longer reaches the browser except Yuvomeet's own business messages.
+- **A-6** `/mfa` and its actions refuse accounts without an admin role (and sign them out), so a member cannot park a TOTP factor on their own account.
+- **A-7** The admin sends CSP (frame-ancestors, form-action, object-src, connect-src), HSTS, COOP, CORP and `X-Robots-Tag`. Sentry transactions pass the same scrubber as errors.
+- **A-8** `isLocal()` defaults to production, so an Edge Function deployed without `APP_ENV` no longer turns on the stubs. Local development sets `APP_ENV=local` in `functions/.env`.
+- **A-9** `razorpay-webhook` only treats a unique violation as a duplicate and releases the event id when processing fails, so Razorpay's retry is processed.
+
+Needs configuration outside this repo (Supabase dashboard, Vercel, CI settings):
+
+- **Brute force on admin sign-in** is limited only by Supabase Auth's per-IP limits, which see the server's IP, not the visitor's. Turn on CAPTCHA (Turnstile or hCaptcha) for sign-in in Auth settings, set a minimum password length of 12 and require leaked-password protection, and keep email signup off.
+- **Session lifetime.** Admin sessions have no idle or absolute timeout. Set a session time-box and an inactivity timeout in Auth settings (Pro plan), and shorten `jwt_expiry` for the admin project.
+- **Session cookie flags.** `@supabase/ssr` sets the session cookie without HttpOnly (its browser client reads it). The admin never uses a browser client, so a hardened cookie handler can be added in `apps/admin/src/lib/supabase.ts` and `proxy.ts` (HttpOnly, Secure, a shorter max-age) once the admin is on its final domain.
+- **otp-verify** can lock out any phone number (an attacker only needs the number) and its lock is bypassable by calling GoTrue's `/verify` directly. Fixing it means moving OTP verification fully behind the function (disable the public verify path) and adding a per-IP limit.
+- **send-sms** accepts any destination and has no per-number cap; set the project-wide `sms_sent` rate limit and a MSG91 spend cap.
+- **config.toml test OTPs** apply to any project that receives `supabase config push`; keep them out of staging and production.
+- **A nonce-based CSP** (no `'unsafe-inline'` for scripts) is the next hardening step for the admin.
+- **Dependencies.** `pnpm audit --prod` reports 10 advisories (2 high, 6 moderate, 2 low), all in the Expo toolchain and Sentry's build tooling (zod, decode-uri-component, node-forge, glob, minimatch, deepmerge), none in code the admin serves. CI now prints the audit without failing on it. Enable Dependabot or Renovate (S-54 assumes it).
+
+Reported and not changed (low): no read-access audit for member PII and chats; reviewers' read scope equals admins' (RLS); `admin_decide_item` accepts a NULL decision and does not check claim ownership; `audit_log` TRUNCATE is not blocked for the table owner; deleting a staff account can break the retention job; reviewers can read payout accounts; the default function privileges are still open to PUBLIC (each migration revokes explicitly).
+
 ## 11. Push notifications
 
 - **S-48** Push payloads carry no message text or names for chat; the notification says "New message in <plan title>" and the app fetches content after unlock. Plan titles pass S-20.

@@ -23,8 +23,21 @@ serve(async (req) => {
   const eventId = req.headers.get('x-razorpay-event-id');
   if (eventId) {
     const { error: replay } = await admin.rpc('svc_webhook_seen', { p_provider: 'razorpay', p_event_id: eventId });
-    if (replay) return json({ ok: true, duplicate: true });
+    // Only a unique violation means "already handled"; any other error is ours to fail loudly on.
+    if (replay?.code === '23505') return json({ ok: true, duplicate: true });
+    if (replay) throw replay;
   }
+
+  try {
+    return await apply(event);
+  } catch (err) {
+    // Release the event id so Razorpay's retry of this delivery is processed, not dropped as a duplicate.
+    if (eventId) await admin.rpc('svc_webhook_forget', { p_provider: 'razorpay', p_event_id: eventId });
+    throw err;
+  }
+});
+
+async function apply(event: Event): Promise<Response> {
 
   const link = event.payload?.payment_link?.entity;
   const paymentId = link?.reference_id;
@@ -34,4 +47,4 @@ serve(async (req) => {
 
   unwrap(await admin.rpc('svc_apply_payment', { p_payment: payment.id, p_razorpay_payment_id: event.payload?.payment?.entity?.id ?? null }));
   return json({ ok: true });
-});
+}

@@ -3,6 +3,7 @@ import type { NextConfig } from 'next';
 import { realpathSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
+import { buildCsp } from './src/lib/csp';
 
 // .npmrc keeps pnpm's virtual store outside the repo (`../.p`, a Windows path-length fix).
 // Turbopack only compiles files under its root, so the root must contain both.
@@ -14,6 +15,8 @@ const commonRoot = (a: string, b: string) => {
   while (i < x.length && x[i] === y[i]) i++;
   return x.slice(0, i).join(path.sep) || path.sep;
 };
+
+const csp = buildCsp(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NODE_ENV !== 'production');
 
 const config: NextConfig = {
   transpilePackages: ['@yuvomeet/shared'],
@@ -30,6 +33,11 @@ const config: NextConfig = {
           { key: 'Referrer-Policy', value: 'no-referrer' },
           { key: 'Cache-Control', value: 'no-store' },
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+          { key: 'Content-Security-Policy', value: csp },
+          { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains' },
+          { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+          { key: 'Cross-Origin-Resource-Policy', value: 'same-origin' },
+          { key: 'X-Robots-Tag', value: 'noindex, nofollow' },
         ],
       },
     ];

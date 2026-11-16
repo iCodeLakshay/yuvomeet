@@ -106,7 +106,15 @@ export type Database = {
           tier?: Database["public"]["Enums"]["entitlement"] | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "payments_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       plan_covers: {
         Row: {
@@ -1898,6 +1906,52 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_web_waitlist: {
+        Row: {
+          city: string | null
+          latest: string | null
+          signups: number | null
+        }
+        ComputedFields: never
+        Insert: {
+          city?: string | null
+          latest?: never
+          signups?: never
+        }
+        Update: {
+          city?: string | null
+          latest?: never
+          signups?: never
+        }
+        Relationships: []
+      }
+      admin_settings: {
+        Row: { key: string | null; val: string | null; updated_at: string | null }
+        ComputedFields: never
+        Relationships: []
+      }
+      admin_screen_terms: {
+        Row: { term: string | null; lang: string | null; action: string | null }
+        ComputedFields: never
+        Relationships: []
+      }
+      admin_web_waitlist_entries: {
+        Row: {
+          id: number | null
+          email: string | null
+          city: string | null
+          consent_text: string | null
+          consented_at: string | null
+          created_at: string | null
+        }
+        ComputedFields: never
+        Relationships: []
+      }
+      admin_kyc_extra: {
+        Row: { user_id: string | null; granted: number | null }
+        ComputedFields: never
+        Relationships: []
+      }
       pair_members: {
         Row: {
           conversation_id: string | null
@@ -2065,6 +2119,92 @@ export type Database = {
       }
     }
     Functions: {
+      // Admin console (20261117000001_admin_console.sql)
+      admin_set_setting: { Args: { p_key: string; p_val: string; p_reason: string }; Returns: undefined }
+      admin_save_screen_term: { Args: { p_term: string; p_lang: string; p_action: string; p_reason: string }; Returns: undefined }
+      admin_delete_screen_term: { Args: { p_term: string; p_lang: string; p_reason: string }; Returns: undefined }
+      admin_save_city: {
+        Args: {
+          p_id: string | null
+          p_name: string
+          p_slug: string
+          p_timezone: string
+          p_center_lat: number
+          p_center_lng: number
+          p_reason: string
+        }
+        Returns: string
+      }
+      admin_delete_city: { Args: { p_city_id: string; p_reason: string }; Returns: undefined }
+      admin_save_college: { Args: { p_id: string | null; p_city_id: string; p_name: string; p_reason: string }; Returns: string }
+      admin_set_college_status: { Args: { p_college_id: string; p_status: string; p_reason: string }; Returns: undefined }
+      admin_merge_college: { Args: { p_from: string; p_into: string; p_reason: string }; Returns: undefined }
+      admin_delete_college: { Args: { p_college_id: string; p_reason: string }; Returns: undefined }
+      admin_save_interest: { Args: { p_slug: string; p_label: string; p_icon: string; p_sort: number; p_reason: string }; Returns: undefined }
+      admin_delete_interest: { Args: { p_slug: string; p_reason: string }; Returns: number }
+      admin_save_activity: { Args: { p_slug: string; p_label: string; p_icon: string; p_sort: number; p_reason: string }; Returns: undefined }
+      admin_delete_activity: { Args: { p_slug: string; p_reason: string }; Returns: undefined }
+      admin_delete_venue: { Args: { p_venue_id: string; p_reason: string }; Returns: undefined }
+      admin_update_profile: {
+        Args: {
+          p_user_id: string
+          p_first_name: string
+          p_bio: string | null
+          p_bio_status: Database["public"]["Enums"]["content_status"]
+          p_city_id: string | null
+          p_college_id: string | null
+          p_reason: string
+        }
+        Returns: undefined
+      }
+      admin_set_entitlement: {
+        Args: {
+          p_user_id: string
+          p_tier: Database["public"]["Enums"]["entitlement"]
+          p_until: string | null
+          p_reason: string
+        }
+        Returns: undefined
+      }
+      admin_delete_user: { Args: { p_user_id: string; p_reason: string }; Returns: string }
+      admin_set_photo_status: {
+        Args: { p_photo_id: string; p_status: Database["public"]["Enums"]["media_status"]; p_reason: string }
+        Returns: undefined
+      }
+      admin_grant_kyc_attempt: { Args: { p_user_id: string; p_reason: string }; Returns: undefined }
+      admin_find_user_by_email: { Args: { p_email: string }; Returns: string | null }
+      admin_list_staff: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          user_id: string
+          email: string
+          role: string
+          granted_by: string | null
+          created_at: string
+          last_sign_in_at: string | null
+          first_name: string | null
+        }[]
+      }
+      admin_set_report_status: {
+        Args: { p_report_id: string; p_status: Database["public"]["Enums"]["report_status"]; p_reason: string }
+        Returns: undefined
+      }
+      admin_release_item: { Args: { p_item_id: string }; Returns: undefined }
+      admin_restore_message: { Args: { p_message_id: string; p_reason: string }; Returns: undefined }
+      admin_unmute: { Args: { p_conversation_id: string; p_user_id: string; p_reason: string }; Returns: undefined }
+      admin_set_conversation_status: {
+        Args: { p_conversation_id: string; p_status: Database["public"]["Enums"]["conversation_status"]; p_reason: string }
+        Returns: undefined
+      }
+      admin_update_plan: { Args: { p_plan_id: string; p_title: string; p_description: string | null; p_reason: string }; Returns: undefined }
+      admin_refund_payment: { Args: { p_payment_id: string; p_reason: string }; Returns: undefined }
+      admin_record_payout: { Args: { p_host_id: string; p_amount_paise: number; p_reference: string; p_reason: string }; Returns: string }
+      admin_send_notification: {
+        Args: { p_user_id: string | null; p_city_id: string | null; p_title: string; p_body: string; p_reason: string }
+        Returns: number
+      }
+      admin_set_role_by_email: { Args: { p_email: string; p_role: string | null; p_reason: string }; Returns: string }
+      admin_delete_web_waitlist: { Args: { p_id: number; p_reason: string }; Returns: undefined }
       hide_messages: { Args: { p_message_ids: string[] }; Returns: undefined }
       my_earnings: { Args: Record<PropertyKey, never>; Returns: Json }
       set_payout_account: { Args: { p_holder_name: string; p_upi_id: string }; Returns: undefined }
@@ -2338,6 +2478,21 @@ export type Database = {
       svc_vendor_usage: {
         Args: { p_units?: number; p_vendor: string }
         Returns: number
+      }
+      svc_webhook_forget: {
+        Args: { p_event_id: string; p_provider: string }
+        Returns: undefined
+      }
+      svc_web_waitlist_join: {
+        Args: {
+          p_city: string
+          p_consent_text: string
+          p_email: string
+          p_limit?: number
+          p_rate_key: string
+          p_window_seconds?: number
+        }
+        Returns: boolean
       }
       svc_webhook_seen: {
         Args: { p_event_id: string; p_provider: string }
