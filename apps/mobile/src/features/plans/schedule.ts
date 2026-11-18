@@ -1,4 +1,4 @@
-import { PLAN_CUTOFF_LOCAL_HOUR, PLAN_MIN_LEAD_HOURS, TIMEZONE } from '@yuvomeet/shared';
+import { PLAN_CUTOFF_LOCAL_HOUR, PLAN_MIN_LEAD_HOURS, TIMEZONE } from '@hengout/shared';
 
 const IST_OFFSET = 5.5 * 3_600_000;
 const DAY = 86_400_000;

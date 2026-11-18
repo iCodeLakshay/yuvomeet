@@ -2,7 +2,7 @@
 // covers them in CI.
 
 /** The consent line the landing form shows next to its tick box (apps/landing/src/components/WaitlistForm.tsx). */
-export const WAITLIST_CONSENT_TEXT = 'Email me once when Yuvomeet opens in my city. My email is used for nothing else.';
+export const WAITLIST_CONSENT_TEXT = 'Email me once when Hengout opens in my city. My email is used for nothing else.';
 
 /** Largest body the function reads; a real submission is under 300 bytes. */
 export const MAX_BODY_BYTES = 2048;

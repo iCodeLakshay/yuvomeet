@@ -21,7 +21,7 @@ export default function Privacy() {
   return (
     <Screen header={<Header title="Privacy and data" />}>
       <Text variant="body" color="textMuted" style={styles.intro}>
-        Turning a purpose off stops Yuvomeet from asking for it. Android permissions can also be revoked in system settings.
+        Turning a purpose off stops Hengout from asking for it. Android permissions can also be revoked in system settings.
       </Text>
       <View style={styles.list}>
         <ConsentToggles value={value} onChange={(key, granted) => void recordConsents(me.id, { [key]: granted })} />

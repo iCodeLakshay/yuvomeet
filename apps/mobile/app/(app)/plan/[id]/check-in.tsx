@@ -1,4 +1,4 @@
-import { CHECKIN_RADIUS_M } from '@yuvomeet/shared';
+import { CHECKIN_RADIUS_M } from '@hengout/shared';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';

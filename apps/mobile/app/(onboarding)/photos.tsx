@@ -1,4 +1,4 @@
-import { MIN_PROFILE_PHOTOS } from '@yuvomeet/shared';
+import { MIN_PROFILE_PHOTOS } from '@hengout/shared';
 import { router } from 'expo-router';
 import { OnboardingShell } from '../../src/features/onboarding/OnboardingShell';
 import { useMyPhotos } from '../../src/features/profile/api';

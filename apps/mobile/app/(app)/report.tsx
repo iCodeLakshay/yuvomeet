@@ -1,4 +1,4 @@
-import { EMERGENCY_HELPLINE, MAX_REPORT_DETAILS_CHARS, REPORT_REASONS, getReportSeverity, type ReportReason } from '@yuvomeet/shared';
+import { EMERGENCY_HELPLINE, MAX_REPORT_DETAILS_CHARS, REPORT_REASONS, getReportSeverity, type ReportReason } from '@hengout/shared';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';

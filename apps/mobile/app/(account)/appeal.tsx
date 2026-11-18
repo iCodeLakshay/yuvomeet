@@ -1,4 +1,4 @@
-import { MAX_APPEAL_CHARS, MIN_APPEAL_CHARS } from '@yuvomeet/shared';
+import { MAX_APPEAL_CHARS, MIN_APPEAL_CHARS } from '@hengout/shared';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { useSubmitAppeal } from '../../src/features/account/api';

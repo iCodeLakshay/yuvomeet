@@ -1,4 +1,4 @@
-# Yuvomeet Mobile — Expo & Android commands
+# Hengout Mobile — Expo & Android commands
 
 Run these from **PowerShell**. Repo root: `d:\Projects\Yuvomeet`. App folder: `apps/mobile`.
 

@@ -8,7 +8,7 @@ const INTER = resolvePackage('@expo-google-fonts/inter');
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: 'Yuvomeet',
+  name: 'Hengout',
   slug: 'yuvomeet',
   version: '0.1.0',
   scheme: 'yuvomeet',
@@ -68,7 +68,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       'expo-location',
       {
         locationWhenInUsePermission:
-          'Yuvomeet uses your location once when you check in at a venue or press SOS. It is never tracked.',
+          'Hengout uses your location once when you check in at a venue or press SOS. It is never tracked.',
         isAndroidBackgroundLocationEnabled: false,
       },
     ],

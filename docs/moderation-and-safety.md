@@ -69,7 +69,7 @@ These are the only automatic restrictions. Each is reversible by a human and eac
 | Rekognition reject on a photo | Photo `rejected`, not shown | Photo marked "Not approved", reason category only (e.g. "nudity", "no face") |
 | Text matches a `reject` term (phone, URL, handle) | Insert rejected; nothing stored | Inline: "Phone numbers and links can't be shared here" |
 | Text matches a `hold` term | Stored `held`, visible to author only | "Pending review" |
-| KYC minor verdict | Banned (S-40) | "You must be 18 or older to use Yuvomeet." Appeal only for "result is wrong". |
+| KYC minor verdict | Banned (S-40) | "You must be 18 or older to use Hengout." Appeal only for "result is wrong". |
 | 3 no-shows in 30 days | Lower join priority: requests sort last in the host's list | Nothing (no penalty notice; PRD edge case) |
 | 2+ late cancels by a host in 30 days | Host's plans sorted after others on the same day (PL-5) | On the cancel sheet: "Late cancellations reduce how often your plans are shown." |
 

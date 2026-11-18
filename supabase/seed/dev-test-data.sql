@@ -78,7 +78,7 @@ begin
   -- People: 9 verified adults (women and men, two colleges), plus the awkward ones
   -- ---------------------------------------------------------------------------------------------
   insert into auth.users (id, aud, role, email, email_confirmed_at, created_at, updated_at)
-  select x.id, 'authenticated', 'authenticated', lower(x.first_name) || '@seed.yuvomeet.test', now(), now() - make_interval(days => x.age_days), now()
+  select x.id, 'authenticated', 'authenticated', lower(x.first_name) || '@seed.hengout.test', now(), now() - make_interval(days => x.age_days), now()
   from (values
     (u[1], 'Ananya', 40), (u[2], 'Priya', 35), (u[3], 'Rohan', 60), (u[4], 'Meera', 25), (u[5], 'Tanmay', 50),
     (u[6], 'Sneha', 20), (u[7], 'Ishita', 15), (u[8], 'Arjun', 45), (u[9], 'Kabir', 1), (u[10], 'Vikram', 12),

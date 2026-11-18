@@ -45,7 +45,7 @@ async function planSeat(userId: string, planId: string): Promise<{ row: Insert; 
       platform_fee_paise: fee,
       host_payout_paise: plan.price_paise - fee,
     },
-    description: `Yuvomeet seat · ${plan.title.slice(0, 60)} · ${formatRupees(plan.price_paise)}`,
+    description: `Hengout seat · ${plan.title.slice(0, 60)} · ${formatRupees(plan.price_paise)}`,
   };
 }
 
@@ -65,7 +65,7 @@ serve(async (req) => {
     const product = findPremiumProduct(productId ?? '');
     if (!product) throw new HttpError(400, 'BAD_REQUEST', 'Pick a plan.');
     row = { user_id: userId, product_id: product.id, kind: 'premium', tier: product.tier, days: product.days, amount_paise: product.amountPaise };
-    description = `Yuvomeet ${product.tier === 'premium' ? 'Premium' : 'Plus'} · ${product.label} · ${formatRupees(product.amountPaise)}`;
+    description = `Hengout ${product.tier === 'premium' ? 'Premium' : 'Plus'} · ${product.label} · ${formatRupees(product.amountPaise)}`;
   }
 
   const payment = unwrap(await admin.from('payments').insert(row).select('id').single())!;

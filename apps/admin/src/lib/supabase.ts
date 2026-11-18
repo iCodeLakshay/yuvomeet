@@ -1,5 +1,5 @@
 import { createServerClient } from '@supabase/ssr';
-import type { Database } from '@yuvomeet/shared';
+import type { Database } from '@hengout/shared';
 import { cookies } from 'next/headers';
 
 export const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;

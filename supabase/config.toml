@@ -66,7 +66,7 @@ enable_confirmations = false
 [auth.sms]
 enable_signup = true
 enable_confirmations = false
-template = "{{ .Code }} is your Yuvomeet code. Do not share it."
+template = "{{ .Code }} is your Hengout code. Do not share it."
 max_frequency = "60s"
 
 # Fixed OTPs for local development (S-11 limits still apply).

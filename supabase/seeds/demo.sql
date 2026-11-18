@@ -18,7 +18,7 @@ on conflict do nothing;
 do $seed$
 declare
   v_kota uuid := '11111111-1111-4111-8111-111111111101';
-  v_pw text := extensions.crypt('Yuvomeet@123', extensions.gen_salt('bf'));
+  v_pw text := extensions.crypt('Hengout@123', extensions.gen_salt('bf'));
   v_today timestamptz := (date_trunc('day', now() at time zone 'Asia/Kolkata')) at time zone 'Asia/Kolkata';
   u record;
   p record;
@@ -33,18 +33,18 @@ begin
     area text, interests text[], bio text, tier public.entitlement, college uuid
   ) on commit drop;
   insert into demo_users values
-    ('44444444-4444-4444-8444-444444444401', 'rohan@demo.yuvomeet.app', 'Rohan', 2003, 'man', 'Talwandi', '{chai-cafe,sports,tech}', 'IIIT Kota, 3rd year. Cricket on weekends, chai every evening.', 'premium', '22222222-2222-4222-8222-222222222201'),
-    ('44444444-4444-4444-8444-444444444402', 'priya@demo.yuvomeet.app', 'Priya', 2004, 'woman', 'Vigyan Nagar', '{study,music,art}', 'NEET prep by day, guitar by night. Looking for a calm study group.', 'free', '22222222-2222-4222-8222-222222222202'),
-    ('44444444-4444-4444-8444-444444444403', 'arjun@demo.yuvomeet.app', 'Arjun', 2002, 'man', 'Rajeev Gandhi Nagar', '{games,movies,food}', 'Catan, Codenames, anything with dice. I bring snacks.', 'plus', null),
-    ('44444444-4444-4444-8444-444444444404', 'sneha@demo.yuvomeet.app', 'Sneha', 2003, 'woman', 'Mahaveer Nagar', '{photography,treks,food}', 'Sunrise walks and street food hunts around Kota.', 'free', '22222222-2222-4222-8222-222222222204'),
-    ('44444444-4444-4444-8444-444444444405', 'karan@demo.yuvomeet.app', 'Karan', 2001, 'man', 'Coral Park', '{sports,fitness}', 'Box cricket and football at the turf. Always need a few more players.', 'free', null),
-    ('44444444-4444-4444-8444-444444444406', 'ananya@demo.yuvomeet.app', 'Ananya', 2005, 'woman', 'Talwandi', '{study,chai-cafe}', 'JEE 2026. Pomodoro sessions with good coffee.', 'free', '22222222-2222-4222-8222-222222222203'),
-    ('44444444-4444-4444-8444-444444444407', 'vikram@demo.yuvomeet.app', 'Vikram', 2000, 'man', 'Kunhari', '{music,art}', 'Play the cajon, looking for people to jam with.', 'premium', null),
-    ('44444444-4444-4444-8444-444444444408', 'isha@demo.yuvomeet.app', 'Isha', 2004, 'woman', 'Jawahar Nagar', '{movies,food,games}', 'Weekend movie plans and long chats after.', 'free', '22222222-2222-4222-8222-222222222205'),
-    ('44444444-4444-4444-8444-444444444409', 'aditya@demo.yuvomeet.app', 'Aditya', 2003, 'man', 'Vigyan Nagar', '{tech,study}', 'Building a startup between mock tests. Happy to talk product.', 'free', '22222222-2222-4222-8222-222222222201'),
-    ('44444444-4444-4444-8444-444444444410', 'meera@demo.yuvomeet.app', 'Meera', 2002, 'woman', 'Riverfront', '{treks,photography,fitness}', 'Evening walks on the riverfront. Bring your camera.', 'plus', null),
-    ('44444444-4444-4444-8444-444444444411', 'rahul@demo.yuvomeet.app', 'Rahul', 2004, 'man', 'Mahaveer Nagar', '{sports,games}', 'Chess and carrom champion of my hostel.', 'free', '22222222-2222-4222-8222-222222222202'),
-    ('44444444-4444-4444-8444-444444444412', 'kavya@demo.yuvomeet.app', 'Kavya', 2003, 'woman', 'Coral Park', '{art,music,chai-cafe}', 'Sketching at cafés. Will draw you if you sit still long enough.', 'free', null);
+    ('44444444-4444-4444-8444-444444444401', 'rohan@demo.hengout.app', 'Rohan', 2003, 'man', 'Talwandi', '{chai-cafe,sports,tech}', 'IIIT Kota, 3rd year. Cricket on weekends, chai every evening.', 'premium', '22222222-2222-4222-8222-222222222201'),
+    ('44444444-4444-4444-8444-444444444402', 'priya@demo.hengout.app', 'Priya', 2004, 'woman', 'Vigyan Nagar', '{study,music,art}', 'NEET prep by day, guitar by night. Looking for a calm study group.', 'free', '22222222-2222-4222-8222-222222222202'),
+    ('44444444-4444-4444-8444-444444444403', 'arjun@demo.hengout.app', 'Arjun', 2002, 'man', 'Rajeev Gandhi Nagar', '{games,movies,food}', 'Catan, Codenames, anything with dice. I bring snacks.', 'plus', null),
+    ('44444444-4444-4444-8444-444444444404', 'sneha@demo.hengout.app', 'Sneha', 2003, 'woman', 'Mahaveer Nagar', '{photography,treks,food}', 'Sunrise walks and street food hunts around Kota.', 'free', '22222222-2222-4222-8222-222222222204'),
+    ('44444444-4444-4444-8444-444444444405', 'karan@demo.hengout.app', 'Karan', 2001, 'man', 'Coral Park', '{sports,fitness}', 'Box cricket and football at the turf. Always need a few more players.', 'free', null),
+    ('44444444-4444-4444-8444-444444444406', 'ananya@demo.hengout.app', 'Ananya', 2005, 'woman', 'Talwandi', '{study,chai-cafe}', 'JEE 2026. Pomodoro sessions with good coffee.', 'free', '22222222-2222-4222-8222-222222222203'),
+    ('44444444-4444-4444-8444-444444444407', 'vikram@demo.hengout.app', 'Vikram', 2000, 'man', 'Kunhari', '{music,art}', 'Play the cajon, looking for people to jam with.', 'premium', null),
+    ('44444444-4444-4444-8444-444444444408', 'isha@demo.hengout.app', 'Isha', 2004, 'woman', 'Jawahar Nagar', '{movies,food,games}', 'Weekend movie plans and long chats after.', 'free', '22222222-2222-4222-8222-222222222205'),
+    ('44444444-4444-4444-8444-444444444409', 'aditya@demo.hengout.app', 'Aditya', 2003, 'man', 'Vigyan Nagar', '{tech,study}', 'Building a startup between mock tests. Happy to talk product.', 'free', '22222222-2222-4222-8222-222222222201'),
+    ('44444444-4444-4444-8444-444444444410', 'meera@demo.hengout.app', 'Meera', 2002, 'woman', 'Riverfront', '{treks,photography,fitness}', 'Evening walks on the riverfront. Bring your camera.', 'plus', null),
+    ('44444444-4444-4444-8444-444444444411', 'rahul@demo.hengout.app', 'Rahul', 2004, 'man', 'Mahaveer Nagar', '{sports,games}', 'Chess and carrom champion of my hostel.', 'free', '22222222-2222-4222-8222-222222222202'),
+    ('44444444-4444-4444-8444-444444444412', 'kavya@demo.hengout.app', 'Kavya', 2003, 'woman', 'Coral Park', '{art,music,chai-cafe}', 'Sketching at cafés. Will draw you if you sit still long enough.', 'free', null);
 
   for u in select * from demo_users loop
     if not exists (select 1 from auth.users where id = u.id) then

@@ -1,4 +1,4 @@
-import { MAX_PROFILE_PHOTOS } from '@yuvomeet/shared';
+import { MAX_PROFILE_PHOTOS } from '@hengout/shared';
 import { useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { CircleCheckFillIcon } from '@thesvg/ui-react-native/circle-check';

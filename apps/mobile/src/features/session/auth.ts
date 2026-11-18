@@ -1,4 +1,4 @@
-import { toE164India } from '@yuvomeet/shared';
+import { toE164India } from '@hengout/shared';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { AppError, toAppError } from '../../lib/errors';

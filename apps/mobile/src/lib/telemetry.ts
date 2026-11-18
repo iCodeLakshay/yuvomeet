@@ -4,7 +4,7 @@ import {
   scrubSentryEvent,
   type AnalyticsEventMap,
   type AnalyticsEventName,
-} from '@yuvomeet/shared';
+} from '@hengout/shared';
 import PostHog from 'posthog-react-native';
 import { env } from './env';
 

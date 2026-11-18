@@ -1,4 +1,4 @@
-import { toE164India } from '@yuvomeet/shared';
+import { toE164India } from '@hengout/shared';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
@@ -76,7 +76,7 @@ function ContactForm({ initial }: { initial: TrustedContact | null }) {
           placeholder="98765 43210"
         />
         {error ? <Notice tone="danger" text={error} /> : null}
-        <Notice text="Stored only on this phone. Yuvomeet never uploads it, and it is gone if you uninstall." icon="phonelink-lock" />
+        <Notice text="Stored only on this phone. Hengout never uploads it, and it is gone if you uninstall." icon="phonelink-lock" />
       </View>
     </Screen>
   );

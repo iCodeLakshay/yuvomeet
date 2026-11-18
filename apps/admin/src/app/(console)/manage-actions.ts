@@ -1,6 +1,6 @@
 'use server';
 
-import type { Database } from '@yuvomeet/shared';
+import type { Database } from '@hengout/shared';
 import { redirect } from 'next/navigation';
 import { field, runAdmin, type ActionState } from '@/lib/action';
 import { requireAdmin } from '@/lib/auth';

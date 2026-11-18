@@ -1,6 +1,6 @@
-# Yuvomeet engineering docs
+# Hengout engineering docs
 
-Yuvomeet (working name) is an Android-first app for verified adults in Kota to find and attend group plans at public venues. The product source of truth is the PRD at the repo root: [PRD — Group Plans App (Kota first).md](<../PRD%20%E2%80%94%20Group%20Plans%20App%20(Kota%20first).md>). Requirement IDs used everywhere in these docs (ON-1, PL-4, SF-3, …) come from that PRD.
+Hengout (working name) is an Android-first app for verified adults in Kota to find and attend group plans at public venues. The product source of truth is the PRD at the repo root: [PRD — Group Plans App (Kota first).md](<../PRD%20%E2%80%94%20Group%20Plans%20App%20(Kota%20first).md>). Requirement IDs used everywhere in these docs (ON-1, PL-4, SF-3, …) come from that PRD.
 
 These docs settle the open engineering choices and set the P0 build order. P1 and P2 are described only far enough that P0 does not block them.
 
@@ -21,7 +21,7 @@ These docs settle the open engineering choices and set the P0 build order. P1 an
 
 ## Ground rules
 
-- **Stitch owns visuals.** The Stitch project "Yuvomeet Mobile App" defines layout, color and typography. These docs define behavior, data, and routes. Screens without a Stitch frame reuse the same tokens and components.
+- **Stitch owns visuals.** The Stitch project "Hengout Mobile App" defines layout, color and typography. These docs define behavior, data, and routes. Screens without a Stitch frame reuse the same tokens and components.
 - **One small design system, no UI kit.** Mobile screens are built from `apps/mobile/src/ui` (React Native `StyleSheet`, tokens in `theme.ts` taken from Stitch: dark surfaces, Inter, white pill buttons, amber accent, Material icons). The admin console mirrors the same tokens in plain CSS. There is no HeroUI, Tailwind or Uniwind.
 - **English only.** The app ships in English; there is no i18n layer. Copy lives next to the screen that shows it.
 - **The database enforces privacy.** If a rule appears in [security.md](security.md), it is enforced by RLS, a trigger, or an Edge Function, not only by the client. `supabase/tests/security.test.sql` (pgTAP) checks the rules.

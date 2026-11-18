@@ -1,4 +1,4 @@
-import { PLAN_CUTOFF_LOCAL_HOUR, PLAN_MIN_LEAD_HOURS } from '@yuvomeet/shared';
+import { PLAN_CUTOFF_LOCAL_HOUR, PLAN_MIN_LEAD_HOURS } from '@hengout/shared';
 import { atMinutes, dayLabel, isStartAllowed, minutesLabel, startProblem, suggestStart, todayKey } from '../features/plans/schedule';
 
 // 2026-11-02 09:00 IST (03:30 UTC).

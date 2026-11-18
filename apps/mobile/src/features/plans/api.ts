@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useMutation, useQuery } from '@tanstack/react-query';
-import { FEED_PAGE_SIZE } from '@yuvomeet/shared';
+import { FEED_PAGE_SIZE } from '@hengout/shared';
 import * as Location from 'expo-location';
 import { AppError, unwrap, unwrapMaybe } from '../../lib/errors';
 import { PAYWALL_ENABLED } from '../../lib/flags';

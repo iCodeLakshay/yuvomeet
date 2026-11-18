@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { POLICY_VERSION } from '@yuvomeet/shared';
+import { POLICY_VERSION } from '@hengout/shared';
 import { unwrap, unwrapMaybe } from '../../lib/errors';
 import { uploadForModeration } from '../../lib/media';
 import { qk, queryClient } from '../../lib/query';

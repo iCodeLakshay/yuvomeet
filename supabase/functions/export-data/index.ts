@@ -8,7 +8,7 @@ serve(async (req) => {
   await rateLimit(userId, 'export-data', 86_400, 3);
 
   const bundle = unwrap(await admin.rpc('svc_export_user', { p_user: userId }));
-  const path = `${userId}/yuvomeet-export-${Date.now()}.json`;
+  const path = `${userId}/hengout-export-${Date.now()}.json`;
   const { error } = await admin.storage
     .from('exports')
     .upload(path, new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' }));

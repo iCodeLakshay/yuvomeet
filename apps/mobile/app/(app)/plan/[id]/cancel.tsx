@@ -1,4 +1,4 @@
-import { checkText } from '@yuvomeet/shared';
+import { checkText } from '@hengout/shared';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';

@@ -1,5 +1,5 @@
 /**
- * Design tokens from the Stitch project "Yuvomeet Mobile App" (dark, Inter, white primary,
+ * Design tokens from the Stitch project "Hengout Mobile App" (dark, Inter, white primary,
  * amber accent). Every screen styles through these; no raw colours elsewhere.
  */
 

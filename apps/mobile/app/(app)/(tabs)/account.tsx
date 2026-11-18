@@ -66,12 +66,12 @@ export default function Account() {
 
       {PAYWALL_ENABLED ? (
         <>
-          <Card onPress={() => router.push({ pathname: '/premium', params: { source: 'account' } })} accessibilityLabel="Yuvomeet Premium" style={styles.premium}>
+          <Card onPress={() => router.push({ pathname: '/premium', params: { source: 'account' } })} accessibilityLabel="Hengout Premium" style={styles.premium}>
             <ListRow
               icon="workspace-premium"
               iconColor="accent"
-              title={tier === 'free' ? 'Get Yuvomeet Premium' : tier === 'premium' ? 'Premium is active' : 'Plus is active'}
-              subtitle={tier === 'free' ? 'Unlimited joins, priority requests' : until ? `Until ${until}` : 'Thanks for supporting Yuvomeet'}
+              title={tier === 'free' ? 'Get Hengout Premium' : tier === 'premium' ? 'Premium is active' : 'Plus is active'}
+              subtitle={tier === 'free' ? 'Unlimited joins, priority requests' : until ? `Until ${until}` : 'Thanks for supporting Hengout'}
               trailing={tier === 'free' ? <Badge label="Upgrade" tone="accent" /> : undefined}
               chevron
             />

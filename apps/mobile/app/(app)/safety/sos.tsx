@@ -1,4 +1,4 @@
-import { EMERGENCY_HELPLINE } from '@yuvomeet/shared';
+import { EMERGENCY_HELPLINE } from '@hengout/shared';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
@@ -57,7 +57,7 @@ export default function Sos() {
         <ListRow icon="contact-phone" title="Add a trusted contact" subtitle="So SOS goes straight to them" onPress={() => router.push('/safety/contact')} />
       )}
       {error ? <Notice tone="danger" text={error} /> : null}
-      <Notice text="Your location goes from your phone to WhatsApp. Yuvomeet only records that SOS was pressed, so moderators can follow up." />
+      <Notice text="Your location goes from your phone to WhatsApp. Hengout only records that SOS was pressed, so moderators can follow up." />
       {plan?.host_id ? (
         <Button
           label="Report someone at this plan"

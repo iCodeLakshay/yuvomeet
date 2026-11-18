@@ -1,4 +1,4 @@
-import { EMERGENCY_HELPLINE } from '@yuvomeet/shared';
+import { EMERGENCY_HELPLINE } from '@hengout/shared';
 import { Linking, StyleSheet, View } from 'react-native';
 import { callEmergency } from '../../src/features/safety/api';
 import { env } from '../../src/lib/env';
@@ -7,7 +7,7 @@ import { Card, Header, Icon, ListRow, Screen, SectionHeader, space, Text, type I
 const RULES: { icon: IconName; title: string; body: string }[] = [
   { icon: 'verified-user', title: 'Verified adults only', body: 'Everyone passes an 18+ ID and selfie check before joining or hosting.' },
   { icon: 'storefront', title: 'Public venues only', body: 'Plans happen at approved cafés and public spots, never homes or private places.' },
-  { icon: 'groups', title: 'Groups, not dates', body: 'Plans are for 3 to 10 people. No one-on-one meetups through Yuvomeet.' },
+  { icon: 'groups', title: 'Groups, not dates', body: 'Plans are for 3 to 10 people. No one-on-one meetups through Hengout.' },
   { icon: 'do-not-disturb-on', title: 'Respect, always', body: 'No harassment, pressure or unwanted contact. One severe report is enough for us to act.' },
   { icon: 'phonelink-lock', title: 'Keep details private', body: "Don't share phone numbers, socials or payment details before you've met." },
   { icon: 'schedule', title: 'Daylight by default', body: 'Plans end by 9 PM unless the venue is a checked late-evening partner.' },

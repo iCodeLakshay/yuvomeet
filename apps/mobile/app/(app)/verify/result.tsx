@@ -52,7 +52,7 @@ export default function VerifyResult() {
         badge: 'lock',
         eyebrow: 'Eligibility notice',
         title: '18+ Only',
-        body: 'Yuvomeet is exclusively for verified members 18 and older.',
+        body: 'Hengout is exclusively for verified members 18 and older.',
         points: [
           { icon: 'badge', text: 'Government ID age check required' },
           { icon: 'support-agent', text: 'Support available if you think this is wrong' },

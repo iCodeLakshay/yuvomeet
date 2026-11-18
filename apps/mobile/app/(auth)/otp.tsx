@@ -1,4 +1,4 @@
-import { OTP_LENGTH, OTP_RESEND_COOLDOWN_SEC } from '@yuvomeet/shared';
+import { OTP_LENGTH, OTP_RESEND_COOLDOWN_SEC } from '@hengout/shared';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';

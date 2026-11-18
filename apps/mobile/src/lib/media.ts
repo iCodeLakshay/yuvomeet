@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { ACCEPTED_IMAGE_LABEL, ACCEPTED_IMAGE_TYPES, MAX_PICK_BYTES, MAX_UPLOAD_BYTES, SIGNED_URL_TTL_SEC } from '@yuvomeet/shared';
+import { ACCEPTED_IMAGE_LABEL, ACCEPTED_IMAGE_TYPES, MAX_PICK_BYTES, MAX_UPLOAD_BYTES, SIGNED_URL_TTL_SEC } from '@hengout/shared';
 import * as Crypto from 'expo-crypto';
 import { File } from 'expo-file-system';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';

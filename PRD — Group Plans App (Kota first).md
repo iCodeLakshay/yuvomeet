@@ -4,7 +4,7 @@ Oct 24, 2026 · @Lakshay
 
 ## 1. Overview
 
-This app lets verified adults (18+) in a city find group plans, such as a cafe evening, a walk, a trek or a study session, and meet people safely without sharing phone numbers. Kota is the first city; every other city launches later through a waitlist. Working name: **Yuvomeet** (placeholder, see the market doc for alternatives).
+This app lets verified adults (18+) in a city find group plans, such as a cafe evening, a walk, a trek or a study session, and meet people safely without sharing phone numbers. Kota is the first city; every other city launches later through a waitlist. Working name: **Hengout** (placeholder, see the market doc for alternatives).
 
 **Problem.** People who move to a city for study or work have no safe, trusted way to find company. Instagram and WhatsApp groups have no verification, and dating apps carry the wrong intent and the wrong reputation for friendship.
 

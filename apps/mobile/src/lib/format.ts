@@ -1,4 +1,4 @@
-import { TIMEZONE } from '@yuvomeet/shared';
+import { TIMEZONE } from '@hengout/shared';
 
 // Intl formatters are expensive to build; create them once (js-hoist-intl).
 const time = new Intl.DateTimeFormat('en-IN', { timeZone: TIMEZONE, hour: 'numeric', minute: '2-digit', hour12: true });

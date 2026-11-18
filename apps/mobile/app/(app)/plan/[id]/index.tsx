@@ -1,4 +1,4 @@
-import { CHECKIN_WINDOW_MIN, formatRupees } from '@yuvomeet/shared';
+import { CHECKIN_WINDOW_MIN, formatRupees } from '@hengout/shared';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';

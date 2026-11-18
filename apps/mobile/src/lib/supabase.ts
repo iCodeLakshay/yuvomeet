@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import type { Database } from '@yuvomeet/shared';
+import type { Database } from '@hengout/shared';
 import { AppState } from 'react-native';
 import { env } from './env';
 import { fetchWithTimeout } from './fetch';

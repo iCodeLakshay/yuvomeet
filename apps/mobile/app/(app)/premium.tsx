@@ -1,4 +1,4 @@
-import { formatRupees, PREMIUM_PRODUCTS, TIER_PERKS, type PaidTier } from '@yuvomeet/shared';
+import { formatRupees, PREMIUM_PRODUCTS, TIER_PERKS, type PaidTier } from '@hengout/shared';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -51,7 +51,7 @@ function Premium() {
 
   return (
     <Screen
-      header={<Header title="Yuvomeet Premium" leading="close" />}
+      header={<Header title="Hengout Premium" leading="close" />}
       footer={
         <>
           <Button

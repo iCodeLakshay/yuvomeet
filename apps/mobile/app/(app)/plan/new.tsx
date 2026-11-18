@@ -8,7 +8,7 @@ import {
   PLAN_PRICE_MIN_RUPEES,
   PLATFORM_FEE_BPS,
   splitSeat,
-} from '@yuvomeet/shared';
+} from '@hengout/shared';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';

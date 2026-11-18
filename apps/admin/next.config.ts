@@ -19,7 +19,7 @@ const commonRoot = (a: string, b: string) => {
 const csp = buildCsp(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NODE_ENV !== 'production');
 
 const config: NextConfig = {
-  transpilePackages: ['@yuvomeet/shared'],
+  transpilePackages: ['@hengout/shared'],
   poweredByHeader: false,
   turbopack: { root: commonRoot(repo, nextDir) },
   // Admin pages are never framed or cached by shared proxies.

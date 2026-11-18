@@ -1,4 +1,4 @@
-import { checkText, MAX_JOIN_NOTE_CHARS, formatRupees } from '@yuvomeet/shared';
+import { checkText, MAX_JOIN_NOTE_CHARS, formatRupees } from '@hengout/shared';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';

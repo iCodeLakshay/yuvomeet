@@ -1,4 +1,4 @@
-import { formatRupees } from '@yuvomeet/shared';
+import { formatRupees } from '@hengout/shared';
 import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { formatPlanTime } from '../../lib/format';

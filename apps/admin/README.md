@@ -19,7 +19,7 @@ Next.js App Router console for reviewers and admins (AD-1 to AD-4, VR-6). Deploy
 
 ```bash
 cp .env.example .env.local      # fill NEXT_PUBLIC_SUPABASE_ANON_KEY from `supabase status`
-pnpm --filter @yuvomeet/admin dev
+pnpm --filter @hengout/admin dev
 ```
 
 Create an admin user in local Studio (Authentication → Add user, email + password), then grant the role with the SQL above.

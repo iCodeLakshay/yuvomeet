@@ -1,10 +1,10 @@
 /**
  * Pure business-logic tests for the mobile app. Run with Node's built-in runner (no RN runtime):
- *   pnpm --filter @yuvomeet/mobile test
+ *   pnpm --filter @hengout/mobile test
  */
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { PLAN_CUTOFF_LOCAL_HOUR, PLAN_MIN_LEAD_HOURS } from '@yuvomeet/shared';
+import { PLAN_CUTOFF_LOCAL_HOUR, PLAN_MIN_LEAD_HOURS } from '@hengout/shared';
 import { bodyMentions, mentionQuery, splitMentions } from '../features/chat/mentions.ts';
 import { dayLabel, isStartAllowed, minutesLabel, startProblem, suggestStart, todayKey } from '../features/plans/schedule.ts';
 

@@ -30,7 +30,7 @@ export default function Consent() {
     <OnboardingShell
       back={false}
       title="Your privacy, your choice"
-      subtitle="Choose what Yuvomeet may use. You can change these any time in Settings."
+      subtitle="Choose what Hengout may use. You can change these any time in Settings."
       cta="Save and continue"
       onCta={save}
       busy={busy}

@@ -1,21 +1,21 @@
 {
-  "name": "yuvomeet",
+  "name": "hengout",
   "version": "0.1.0",
   "private": true,
   "packageManager": "pnpm@9.15.9",
   "scripts": {
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test && node scripts/verify-security-rules.mjs",
-    "lint": "pnpm --filter @yuvomeet/mobile lint",
+    "lint": "pnpm --filter @hengout/mobile lint",
     "check:security": "node scripts/verify-security-rules.mjs",
     "db:types": "supabase gen types typescript --local --schema public > packages/shared/src/database.types.ts",
     "db:test": "supabase test db",
     "functions:check": "cd supabase/functions && deno check */index.ts && deno test _shared/",
-    "android": "pnpm --filter @yuvomeet/mobile android",
-    "start": "pnpm --filter @yuvomeet/mobile start",
-    "mobile:start": "pnpm --filter @yuvomeet/mobile start",
-    "mobile:android": "pnpm --filter @yuvomeet/mobile android",
-    "admin:dev": "pnpm --filter @yuvomeet/admin dev"
+    "android": "pnpm --filter @hengout/mobile android",
+    "start": "pnpm --filter @hengout/mobile start",
+    "mobile:start": "pnpm --filter @hengout/mobile start",
+    "mobile:android": "pnpm --filter @hengout/mobile android",
+    "admin:dev": "pnpm --filter @hengout/admin dev"
   },
   "devDependencies": {
     "typescript": "~5.8.2"

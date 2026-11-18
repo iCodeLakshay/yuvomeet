@@ -40,7 +40,7 @@ export default function Rules() {
     <OnboardingShell
       step={4}
       title="Community rules"
-      subtitle="Yuvomeet is for friendly group plans in public places."
+      subtitle="Hengout is for friendly group plans in public places."
       cta="Finish and explore Kota"
       onCta={finish}
       busy={busy}

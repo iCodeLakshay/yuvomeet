@@ -7,7 +7,7 @@ import { colors, space } from './theme';
 export const Logo = memo(function Logo({ size = 22, wordmark = true }: { size?: number; wordmark?: boolean }) {
   const d = size * 0.58;
   return (
-    <View style={styles.row} accessibilityRole="image" accessibilityLabel="Yuvomeet">
+    <View style={styles.row} accessibilityRole="image" accessibilityLabel="Hengout">
       <View style={{ width: size, height: size }}>
         <View style={[styles.dot, { width: d, height: d, borderRadius: d / 2, left: (size - d) / 2, top: 0 }]} />
         <View style={[styles.dot, { width: d, height: d, borderRadius: d / 2, left: 0, bottom: 0 }]} />
@@ -15,7 +15,7 @@ export const Logo = memo(function Logo({ size = 22, wordmark = true }: { size?: 
       </View>
       {wordmark ? (
         <Text variant="title2" style={{ fontSize: size, lineHeight: size * 1.25 }}>
-          yuvomeet
+          hengout
         </Text>
       ) : null}
     </View>

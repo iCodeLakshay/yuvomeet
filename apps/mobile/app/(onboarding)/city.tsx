@@ -29,7 +29,7 @@ export default function CityPicker() {
   };
 
   return (
-    <Screen header={<Header leading="none" center={<Text variant="title3">Yuvomeet</Text>} />}>
+    <Screen header={<Header leading="none" center={<Text variant="title3">Hengout</Text>} />}>
       <View style={styles.hero}>
         <View style={styles.pin}>
           <Icon name="location-on" size={26} />

@@ -37,7 +37,7 @@ export function useExportData() {
       const target = new File(dir, file_name);
       if (target.exists) target.delete();
       const file = await File.downloadFileAsync(url, target);
-      await Sharing.shareAsync(file.uri, { mimeType: 'application/json', dialogTitle: 'Your Yuvomeet data' });
+      await Sharing.shareAsync(file.uri, { mimeType: 'application/json', dialogTitle: 'Your Hengout data' });
     },
   });
 }

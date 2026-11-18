@@ -1,4 +1,4 @@
-import { MIN_INTERESTS } from '@yuvomeet/shared';
+import { MIN_INTERESTS } from '@hengout/shared';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { OnboardingShell } from '../../src/features/onboarding/OnboardingShell';

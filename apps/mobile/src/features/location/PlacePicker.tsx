@@ -1,4 +1,4 @@
-import { KOTA_AREAS } from '@yuvomeet/shared';
+import { KOTA_AREAS } from '@hengout/shared';
 import { memo, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Button, Chip, Field, Sheet, space } from '../../ui';

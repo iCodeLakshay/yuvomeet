@@ -1,5 +1,5 @@
 {
-  "name": "@yuvomeet/mobile",
+  "name": "@hengout/mobile",
   "version": "0.1.0",
   "private": true,
   "main": "expo-router/entry",
@@ -24,7 +24,7 @@
     "@tanstack/react-query": "^5.105.0",
     "@tanstack/react-query-persist-client": "^5.105.0",
     "@thesvg/ui-react-native": "4.4.0",
-    "@yuvomeet/shared": "workspace:*",
+    "@hengout/shared": "workspace:*",
     "expo": "~57.0.31",
     "expo-application": "~57.0.3",
     "expo-blur": "~57.0.3",
@@ -84,7 +84,7 @@
       "<rootDir>/src/**/__tests__/**/*.test.ts?(x)"
     ],
     "transformIgnorePatterns": [
-      "node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg|@thesvg/.*|@yuvomeet/.*|@shopify/flash-list|@tanstack/.*))"
+      "node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg|@thesvg/.*|@hengout/.*|@shopify/flash-list|@tanstack/.*))"
     ]
   }
 }

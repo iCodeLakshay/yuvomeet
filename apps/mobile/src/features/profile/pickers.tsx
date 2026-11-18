@@ -1,4 +1,4 @@
-import { CUSTOM_AREA_CELL, KOTA_AREAS, MAX_INTERESTS } from '@yuvomeet/shared';
+import { CUSTOM_AREA_CELL, KOTA_AREAS, MAX_INTERESTS } from '@hengout/shared';
 import { memo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Chip, Field, SectionHeader, space, type IconName } from '../../ui';

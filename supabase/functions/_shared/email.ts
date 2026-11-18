@@ -8,7 +8,7 @@ export async function sendEmail(to: string, subject: string, text: string): Prom
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${requireSecret('RESEND_API_KEY')}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: Deno.env.get('EMAIL_FROM') ?? 'Yuvomeet <no-reply@yuvomeet.app>', to: [to], subject, text }),
+    body: JSON.stringify({ from: Deno.env.get('EMAIL_FROM') ?? 'Hengout <no-reply@hengout.app>', to: [to], subject, text }),
     signal: AbortSignal.timeout(10_000),
   });
   if (!res.ok) throw new Error(`Email delivery failed ${res.status}`);

@@ -23,11 +23,11 @@ Deno.test('parseWaitlist flags the honeypot and ignores unknown fields', () => {
 });
 
 Deno.test('CORS allows only listed origins, never a wildcard', () => {
-  const allowed = allowedOrigins('https://yuvomeet.app, https://www.yuvomeet.app/, *, not a url');
-  assertEquals([...allowed], ['https://yuvomeet.app', 'https://www.yuvomeet.app']);
+  const allowed = allowedOrigins('https://hengout.app, https://www.hengout.app/, *, not a url');
+  assertEquals([...allowed], ['https://hengout.app', 'https://www.hengout.app']);
   assertEquals(corsHeaders('https://evil.example', allowed), null);
   assertEquals(corsHeaders(null, allowed), null);
-  assertEquals(corsHeaders('https://yuvomeet.app', allowed)?.['Access-Control-Allow-Origin'], 'https://yuvomeet.app');
+  assertEquals(corsHeaders('https://hengout.app', allowed)?.['Access-Control-Allow-Origin'], 'https://hengout.app');
 });
 
 Deno.test('clientIp takes the first forwarded hop', () => {

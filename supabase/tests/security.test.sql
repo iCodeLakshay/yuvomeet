@@ -406,13 +406,13 @@ select ok(has_function_privilege('service_role', 'public.svc_web_waitlist_join(t
   'web waitlist: the service role can call the join RPC');
 select ok(not has_table_privilege('anon', 'private.web_waitlist', 'select') and not has_table_privilege('authenticated', 'private.web_waitlist', 'select'),
   'web waitlist: emails are not readable by anon or members');
-select is(public.svc_web_waitlist_join(repeat('a', 64), 'Web@Example.com', 'Kota', 'Email me once when Yuvomeet opens in my city.', 600, 2),
+select is(public.svc_web_waitlist_join(repeat('a', 64), 'Web@Example.com', 'Kota', 'Email me once when Hengout opens in my city.', 600, 2),
   true, 'web waitlist: a first signup is accepted');
-select is(public.svc_web_waitlist_join(repeat('a', 64), 'web@example.com', 'Kota', 'Email me once when Yuvomeet opens in my city.', 600, 2),
+select is(public.svc_web_waitlist_join(repeat('a', 64), 'web@example.com', 'Kota', 'Email me once when Hengout opens in my city.', 600, 2),
   true, 'web waitlist: a repeat signup answers the same (no enumeration)');
 select is((select count(*)::int from private.web_waitlist where email = 'web@example.com' and city = 'Kota'), 1,
   'web waitlist: a repeat signup is stored once, lower-cased');
-select is(public.svc_web_waitlist_join(repeat('a', 64), 'other@example.com', 'Kota', 'Email me once when Yuvomeet opens in my city.', 600, 2),
+select is(public.svc_web_waitlist_join(repeat('a', 64), 'other@example.com', 'Kota', 'Email me once when Hengout opens in my city.', 600, 2),
   false, 'web waitlist: the per-connection limit refuses the third try');
 
 select * from finish();

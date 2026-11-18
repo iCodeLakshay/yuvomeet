@@ -1,4 +1,4 @@
-import { KOTA_AREAS } from '@yuvomeet/shared';
+import { KOTA_AREAS } from '@hengout/shared';
 import { notFound } from 'next/navigation';
 import { ActionForm } from '@/components/ActionForm';
 import { Badge, Card, Page } from '@/components/ui';

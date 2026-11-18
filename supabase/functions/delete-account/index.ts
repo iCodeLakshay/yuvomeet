@@ -44,8 +44,8 @@ serve(async (req) => {
     if (email.isConfigured()) {
       await email.sendEmail(
         target,
-        'Your Yuvomeet account deletion code',
-        `Your code to delete your Yuvomeet account is ${code}. It expires in 10 minutes.\n\nIf you didn't ask for this, ignore this email and your account stays as it is.`,
+        'Your Hengout account deletion code',
+        `Your code to delete your Hengout account is ${code}. It expires in 10 minutes.\n\nIf you didn't ask for this, ignore this email and your account stays as it is.`,
       );
     } else if (!isLocal()) {
       throw new HttpError(503, 'EMAIL_UNAVAILABLE', "We couldn't send the code. Contact support to delete your account.");

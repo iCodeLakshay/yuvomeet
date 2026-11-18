@@ -109,7 +109,7 @@ Fixed in migrations `20261116000002_admin_authz_fixes.sql` and `20261116000003_w
 - **A-2** `app.is_admin()` and `app.is_full_admin()` now also read the live `private.admin_roles` row. A removed or demoted admin loses access at once instead of at token expiry (up to 1 h). `admin_set_role` also ends the sessions of someone it demotes or removes, refuses to change your own role, and records the previous role.
 - **A-3** Appeals: lifting a ban or an under-18 block is admin-only by the account's real state, not by the subject the appellant chose. Nobody answers their own appeal, and reviewers cannot answer escalated ones.
 - **A-4** Reviewers cannot suspend staff, nobody changes their own status, and "restore" works only on suspended or banned accounts that are not under-18 blocks.
-- **A-5** Admin actions validate uuids, enums, lengths, coordinates and times before calling an RPC. Database error text no longer reaches the browser except Yuvomeet's own business messages.
+- **A-5** Admin actions validate uuids, enums, lengths, coordinates and times before calling an RPC. Database error text no longer reaches the browser except Hengout's own business messages.
 - **A-6** `/mfa` and its actions refuse accounts without an admin role (and sign them out), so a member cannot park a TOTP factor on their own account.
 - **A-7** The admin sends CSP (frame-ancestors, form-action, object-src, connect-src), HSTS, COOP, CORP and `X-Robots-Tag`. Sentry transactions pass the same scrubber as errors.
 - **A-8** `isLocal()` defaults to production, so an Edge Function deployed without `APP_ENV` no longer turns on the stubs. Local development sets `APP_ENV=local` in `functions/.env`.

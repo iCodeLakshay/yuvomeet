@@ -1,6 +1,6 @@
 'use server';
 
-import type { Database } from '@yuvomeet/shared';
+import type { Database } from '@hengout/shared';
 import { field, runAdmin, type ActionState } from '@/lib/action';
 import { firstInvalid, oneOf, reason, uuid } from '@/lib/validate';
 

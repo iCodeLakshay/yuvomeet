@@ -1,4 +1,4 @@
-import { checkText, MAX_BIO_CHARS, MIN_INTERESTS } from '@yuvomeet/shared';
+import { checkText, MAX_BIO_CHARS, MIN_INTERESTS } from '@hengout/shared';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';

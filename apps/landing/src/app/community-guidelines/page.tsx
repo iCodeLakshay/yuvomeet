@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { JsonLd } from '@/components/JsonLd';
 import { BRAND, RULES, SITE_URL } from '@/content/site';
 
@@ -25,45 +24,48 @@ const breadcrumbs = {
 
 export default function CommunityGuidelines() {
   return (
-    <main id="main" className="page">
+    <main id="main" className="flex-1 w-full max-w-3xl mx-auto px-4 sm:px-6 pt-16 md:pt-24 pb-24">
       <JsonLd data={breadcrumbs} />
-      <div className="wrap">
-        <nav aria-label="Breadcrumb">
-          <ol className="crumbs">
-            <li><Link href="/" className="link">Home</Link></li>
-            <li aria-hidden="true">/</li>
-            <li aria-current="page">{TITLE}</li>
-          </ol>
-        </nav>
-        <div className="head">
-          <h1 className="h1">Hengout community guidelines</h1>
-          <p className="lead">
-            Every member agrees to these rules before their first plan. They are the same rules the app shows, and the
-            team acts on reports against them.
-          </p>
-        </div>
-        <ol className="rules">
-          {RULES.map((r, i) => (
-            <li key={r.title}>
-              <span className="rules__n">0{i + 1}</span>
-              <h2>{r.title}</h2>
-              <p>{r.body}</p>
-            </li>
-          ))}
+      <nav aria-label="Breadcrumb" className="mb-6 text-xs text-secondary">
+        <ol className="flex items-center gap-2">
+          <li><a href="/" className="hover:text-white transition-colors">Home</a></li>
+          <li aria-hidden="true">/</li>
+          <li aria-current="page" className="text-on-surface">{TITLE}</li>
         </ol>
-        <div className="prose-block">
-          <h2>What happens after a report</h2>
-          <p>
-            A person on the Hengout team reviews every report. Two reports from two different verified members within 30
-            days pause an account until it is reviewed. Blocking is silent: the person you block is not told, and you stop
-            seeing each other’s plans, profiles and messages.
-          </p>
-          <p>
-            Suspensions, bans and failed verifications can be appealed from the app. A person answers every appeal within 48
-            hours.
-          </p>
-          <p>If you are in danger right now, call 112.</p>
-        </div>
+      </nav>
+      <header className="mb-10">
+        <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight hero-title-gradient mb-3">Hengout community guidelines</h1>
+        <p className="text-sm sm:text-base text-secondary max-w-2xl leading-relaxed">
+          Every member agrees to these rules before their first plan. They are the same rules the app shows, and the team
+          acts on reports against them.
+        </p>
+      </header>
+      <ol data-reveal className="grid gap-3 mb-10">
+        {RULES.map((r, i) => (
+          <li key={r.title} className="glass-card rounded-2xl p-5 sm:p-6 flex gap-4">
+            <span className="font-mono text-[11px] text-neutral-500 pt-1">0{i + 1}</span>
+            <div>
+              <h2 className="text-base font-semibold text-white mb-1">{r.title}</h2>
+              <p className="text-sm text-secondary leading-relaxed">{r.body}</p>
+            </div>
+          </li>
+        ))}
+      </ol>
+      <div className="space-y-3 text-sm text-secondary leading-relaxed">
+        <h2 className="text-lg font-bold text-white">What happens after a report</h2>
+        <p>
+          A person on the Hengout team reviews every report. Two reports from two different verified members within 30
+          days pause an account until it is reviewed. Blocking is silent: the person you block is not told, and you stop
+          seeing each other’s plans, profiles and messages.
+        </p>
+        <p>
+          Suspensions, bans and failed verifications can be appealed from the app. A person answers every appeal within 48
+          hours.
+        </p>
+        <p className="text-on-surface">If you are in danger right now, call 112.</p>
+        <p>
+          See also the <a className="text-accent-violet hover:text-white transition-colors" href="/legal/">terms and privacy policy</a>.
+        </p>
       </div>
     </main>
   );

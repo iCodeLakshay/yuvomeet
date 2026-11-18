@@ -7,7 +7,7 @@ import { areaCell, AreaPicker, CollegePicker } from '../../src/features/profile/
 import { useMe } from '../../src/features/session/SessionProvider';
 import { errorMessage } from '../../src/lib/errors';
 import type { Enums } from '../../src/lib/supabase';
-import { checkText } from '@yuvomeet/shared';
+import { checkText } from '@hengout/shared';
 import { Chip, Field, Icon, Notice, SectionHeader, space, Text } from '../../src/ui';
 
 const GENDERS: { value: Enums<'gender'>; label: string }[] = [
@@ -40,7 +40,7 @@ export default function ProfileBasics() {
   const age = Number(ageText ?? (me.birth_year ? new Date().getFullYear() - me.birth_year : ''));
   const ageValid = Number.isInteger(age) && age >= 18 && age <= 99;
   const ageShown = ageText ?? (me.birth_year ? String(new Date().getFullYear() - me.birth_year) : '');
-  const ageError = ageShown && !ageValid ? (age < 18 ? 'Yuvomeet is for members 18 and older.' : 'Enter your age in years.') : null;
+  const ageError = ageShown && !ageValid ? (age < 18 ? 'Hengout is for members 18 and older.' : 'Enter your age in years.') : null;
 
   const typedArea = chosenArea.trim();
   const typedCollege = collegeName.trim();

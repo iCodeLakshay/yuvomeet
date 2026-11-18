@@ -1,4 +1,4 @@
-import { KOTA_AREAS } from '@yuvomeet/shared';
+import { KOTA_AREAS } from '@hengout/shared';
 import { router } from 'expo-router';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { EMPTY_FILTERS, type FeedFilters } from '../../src/features/plans/api';

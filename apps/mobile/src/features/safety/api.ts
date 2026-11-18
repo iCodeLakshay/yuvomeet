@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { EMERGENCY_HELPLINE, getReportSeverity, type ReportReason } from '@yuvomeet/shared';
+import { EMERGENCY_HELPLINE, getReportSeverity, type ReportReason } from '@hengout/shared';
 import * as Location from 'expo-location';
 import * as SecureStore from 'expo-secure-store';
 import { Linking, Share } from 'react-native';
@@ -115,7 +115,7 @@ async function openWhatsApp(text: string, contact: TrustedContact | null) {
 export function sharePlanWithContact(plan: SharePlan, contact: TrustedContact | null) {
   const map = `https://maps.google.com/?q=${plan.venueLat},${plan.venueLng}`;
   return openWhatsApp(
-    `I'm going to a Yuvomeet group plan.\n${plan.title}\n${plan.venueName}, ${plan.venueAddress}\n${formatPlanTime(plan.startsAt)}\nHost: ${plan.hostName}\n${map}`,
+    `I'm going to a Hengout group plan.\n${plan.title}\n${plan.venueName}, ${plan.venueAddress}\n${formatPlanTime(plan.startsAt)}\nHost: ${plan.hostName}\n${map}`,
     contact,
   );
 }
@@ -135,7 +135,7 @@ export async function sendSosLocation(plan: SharePlan & { id: string }, contact:
   }
   await supabase.rpc('log_sos', { p_plan_id: plan.id });
   track('sos_pressed', { plan_id: plan.id, location_sent: locationSent });
-  await openWhatsApp(`SOS from Yuvomeet. I need help.\n${locationLine}\nPlan: ${plan.title} at ${plan.venueName}, ${plan.venueAddress}`, contact);
+  await openWhatsApp(`SOS from Hengout. I need help.\n${locationLine}\nPlan: ${plan.title} at ${plan.venueName}, ${plan.venueAddress}`, contact);
 }
 
 export const callEmergency = () => Linking.openURL(`tel:${EMERGENCY_HELPLINE}`);

@@ -1,4 +1,4 @@
-import { formatRupees } from '@yuvomeet/shared';
+import { formatRupees } from '@hengout/shared';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';

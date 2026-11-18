@@ -1,5 +1,5 @@
 import { FlashList } from '@shopify/flash-list';
-import { MAX_MESSAGE_CHARS, screenText, SCREEN_MESSAGES } from '@yuvomeet/shared';
+import { MAX_MESSAGE_CHARS, screenText, SCREEN_MESSAGES } from '@hengout/shared';
 import * as Clipboard from 'expo-clipboard';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
